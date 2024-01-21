@@ -12,6 +12,9 @@ use Temkaa\SimpleValidator\Constraint\Validator\NegativeValidator;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class Negative implements ConstraintInterface
 {
+    /**
+     * @psalm-api
+     */
     public function __construct(
         public string $message,
     ) {

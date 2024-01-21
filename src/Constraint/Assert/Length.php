@@ -12,6 +12,9 @@ use Temkaa\SimpleValidator\Constraint\Validator\LengthValidator;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class Length implements ConstraintInterface
 {
+    /**
+     * @psalm-api
+     */
     public function __construct(
         public ?int $minLength = null,
         public ?int $maxLength = null,

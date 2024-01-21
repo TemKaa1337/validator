@@ -133,3 +133,4 @@ $validator = new Validator();
 /** @var ViolationListInterface<ViolationInterface> $errors */
 $errors = $validator->validate(new Test());
 ```
+

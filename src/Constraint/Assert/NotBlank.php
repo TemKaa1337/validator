@@ -15,6 +15,9 @@ use Temkaa\SimpleValidator\Constraint\Validator\NotBlankValidator;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class NotBlank implements ConstraintInterface
 {
+    /**
+     * @psalm-api
+     */
     public function __construct(
         public string $message,
         public bool $allowNull = false,

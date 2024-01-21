@@ -15,6 +15,8 @@ final class ViolationList implements ViolationListInterface
 {
     /**
      * @param ViolationInterface[] $violations
+     *
+     * @psalm-api
      */
     public function __construct(
         private array $violations = [],

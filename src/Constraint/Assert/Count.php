@@ -12,6 +12,9 @@ use Temkaa\SimpleValidator\Constraint\Validator\CountValidator;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class Count implements ConstraintInterface
 {
+    /**
+     * @psalm-api
+     */
     public function __construct(
         public int $expected,
         public string $message,

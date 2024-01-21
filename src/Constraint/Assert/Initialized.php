@@ -12,6 +12,9 @@ use Temkaa\SimpleValidator\Constraint\Validator\InitializedValidator;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class Initialized implements ConstraintInterface
 {
+    /**
+     * @psalm-api
+     */
     public function __construct(
         public string $message,
     ) {

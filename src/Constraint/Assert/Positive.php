@@ -12,6 +12,9 @@ use Temkaa\SimpleValidator\Constraint\Validator\PositiveValidator;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class Positive implements ConstraintInterface
 {
+    /**
+     * @psalm-api
+     */
     public function __construct(
         public string $message,
     ) {
