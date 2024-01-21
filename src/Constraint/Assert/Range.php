@@ -9,12 +9,12 @@ use Temkaa\SimpleValidator\AbstractConstraintValidator;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\Validator\RangeValidator;
 
-/**
- * @psalm-api
- */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class Range implements ConstraintInterface
 {
+    /**
+     * @psalm-api
+     */
     public function __construct(
         public float|int|null $min = null,
         public float|int|null $max = null,
