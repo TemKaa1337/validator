@@ -12,6 +12,9 @@ use Temkaa\SimpleValidator\Constraint\ViolationList;
 use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
 use Temkaa\SimpleValidator\Exception\UnsupportedActionException;
 
+/**
+ * @psalm-api
+ */
 final class Validator implements ValidatorInterface
 {
     public function validate(object $value, array|ConstraintInterface|null $constraints = null): ViolationListInterface
