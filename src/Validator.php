@@ -4,19 +4,42 @@ declare(strict_types=1);
 
 namespace Temkaa\SimpleValidator;
 
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use ReflectionClass;
+use ReflectionException;
 use Temkaa\SimpleValidator\Constraint\Assert\Initialized;
 use Temkaa\SimpleValidator\Constraint\Assert\NotBlank;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\ViolationList;
 use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
+use Temkaa\SimpleValidator\Exception\UninitializedPropertyException;
 use Temkaa\SimpleValidator\Exception\UnsupportedActionException;
+use Temkaa\SimpleValidator\Utils\Instantiator;
 
 /**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ *
  * @psalm-api
  */
-final class Validator implements ValidatorInterface
+final readonly class Validator implements ValidatorInterface
 {
+    private Instantiator $instantiator;
+
+    public function __construct(
+        ?ContainerInterface $container = null,
+    ) {
+        $this->instantiator = new Instantiator($container);
+    }
+
+    /**
+     * @inheritDoc
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
+     */
     public function validate(object $value, array|ConstraintInterface|null $constraints = null): ViolationListInterface
     {
         $this->validateConstraints($constraints);
@@ -51,11 +74,16 @@ final class Validator implements ValidatorInterface
 
     /**
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      *
      * @param object                $value
      * @param ConstraintInterface[] $constraints
      *
      * @return ViolationListInterface
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
     private function validateValue(object $value, array $constraints): ViolationListInterface
     {
@@ -68,7 +96,8 @@ final class Validator implements ValidatorInterface
 
         if ($constraints) {
             foreach ($constraints as $constraint) {
-                $handler = $constraint->getHandler();
+                $handler = $this->instantiator->instantiate($constraint->getHandler());
+
                 $handler->validate($value, $constraint);
 
                 $violations->merge($handler->getViolations());
@@ -80,12 +109,15 @@ final class Validator implements ValidatorInterface
         $attributes = $r->getAttributes();
         foreach ($attributes as $attribute) {
             $constraint = $attribute->newInstance();
-            if ($constraint instanceof ConstraintInterface) {
-                $handler = $constraint->getHandler();
-                $handler->validate($value, $constraint);
-
-                $violations->merge($handler->getViolations());
+            if (!$constraint instanceof ConstraintInterface) {
+                continue;
             }
+
+            $handler = $this->instantiator->instantiate($constraint->getHandler());
+
+            $handler->validate($value, $constraint);
+
+            $violations->merge($handler->getViolations());
         }
 
         $properties = $r->getProperties();
@@ -95,31 +127,41 @@ final class Validator implements ValidatorInterface
             foreach ($attributes as $attribute) {
                 $constraint = $attribute->newInstance();
 
-                if ($constraint instanceof ConstraintInterface) {
-                    $handler = $constraint->getHandler();
-                    /** @psalm-suppress PossiblyInvalidArgument */
-                    $isPropertyInitialized = $property->isInitialized($value);
+                if (!$constraint instanceof ConstraintInterface) {
+                    continue;
+                }
 
-                    if ($constraint instanceof Initialized || $constraint instanceof NotBlank) {
-                        /** @psalm-suppress PossiblyInvalidArgument */
-                        $value = match (true) {
-                            $constraint instanceof NotBlank => $isPropertyInitialized
-                                ? $property->getValue($value)
-                                : '',
-                            default                         => $isPropertyInitialized,
-                        };
+                $handler = $this->instantiator->instantiate($constraint->getHandler());
 
-                        $handler->validate(
-                            $value,
-                            $constraint,
+                $isPropertyInitialized = $property->isInitialized($value);
+
+                if ($constraint instanceof Initialized || $constraint instanceof NotBlank) {
+                    $propertyValue = match (true) {
+                        $constraint instanceof NotBlank => $isPropertyInitialized
+                            ? $property->getValue($value)
+                            : '',
+                        default                         => $isPropertyInitialized,
+                    };
+
+                    $handler->validate(
+                        $propertyValue,
+                        $constraint,
+                    );
+                } else {
+                    if (!$isPropertyInitialized) {
+                        throw new UninitializedPropertyException(
+                            sprintf(
+                                'Cannot read property value with name "%s" on object "%s".',
+                                $property->getName(),
+                                $value::class,
+                            ),
                         );
-                    } else if ($isPropertyInitialized) {
-                        /** @psalm-suppress PossiblyInvalidArgument */
-                        $handler->validate($property->getValue($value), $constraint);
                     }
 
-                    $violations->merge($handler->getViolations());
+                    $handler->validate($property->getValue($value), $constraint);
                 }
+
+                $violations->merge($handler->getViolations());
             }
         }
 

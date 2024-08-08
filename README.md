@@ -1,34 +1,40 @@
 ### This is a simple Validator implementation.
 
-### This package provides the following constraints:
-##### \#[Count]
+## Here are some todos:
+1. implement cascade assert on objects
+2. rework to accept container interface
+3. rework attribute interface to provide class name of validator
+4. implement correct path
+
+## This package provides the following constraints:
+### \#[Count]
 Checks whether the specific value as exactly given count.
 
-##### \#[GreaterThan]
+### \#[GreaterThan]
 Checks whether the specific value is greater than expected.
 
-##### \#[Initialized]
+### \#[Initialized]
 Checks whether the specific property of object is initialized with any value.
 
-##### \#[Length]
+### \#[Length]
 Checks whether the specific value is in specified length range.
 
-##### \#[LessThan]
+### \#[LessThan]
 Checks whether the specific value is less than expected.
 
-##### \#[Negative]
+### \#[Negative]
 Checks whether the specific value is negative (strictly less than 0).
 
-##### \#[NotBlank]
+### \#[NotBlank]
 Checks whether the specific value is not blank (empty array/blank string/is not initialized).
 
-##### \#[Positive]
+### \#[Positive]
 Checks whether the specific value is positive (strictly greater than 0).
 
-##### \#[Range]
+### \#[Range]
 The same as Length but for `int` and `float`.
 
-##### \#[Regex]
+### \#[Regex]
 Checks whether the specific value matches given regexp expression.
 
 ### Usage:

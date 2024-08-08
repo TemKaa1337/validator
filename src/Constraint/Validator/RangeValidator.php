@@ -19,24 +19,26 @@ final class RangeValidator extends AbstractConstraintValidator
 {
     public function validate(mixed $value, ConstraintInterface $constraint): void
     {
+        if (!$constraint instanceof Range) {
+            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Range::class);
+        }
+
         $this->validateConstraint($constraint);
         $this->validateValue($value);
 
         $value = (float) $value;
         /** @psalm-suppress NoInterfaceProperties */
         if ($constraint->min !== null && $constraint->min > $value) {
+            /** @psalm-suppress PossiblyNullArgument */
             $this->addViolation(new Violation(invalidValue: $value, message: $constraint->minMessage, path: null));
         } else if ($constraint->max !== null && $constraint->max < $value) {
+            /** @psalm-suppress PossiblyNullArgument */
             $this->addViolation(new Violation(invalidValue: $value, message: $constraint->maxMessage, path: null));
         }
     }
 
-    private function validateConstraint(ConstraintInterface $constraint): void
+    private function validateConstraint(Range $constraint): void
     {
-        if (!$constraint instanceof Range) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Range::class);
-        }
-
         if ($constraint->min === null && $constraint->max === null) {
             throw new InvalidConstraintConfigurationException(
                 'Length constraint must have one of "min" or "max" argument set.',

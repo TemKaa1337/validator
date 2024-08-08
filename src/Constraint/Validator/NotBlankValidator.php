@@ -16,10 +16,13 @@ final class NotBlankValidator extends AbstractConstraintValidator
 {
     public function validate(mixed $value, ConstraintInterface $constraint): void
     {
-        $this->performBasicValidation($value, $constraint);
+        if (!$constraint instanceof NotBlank) {
+            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: NotBlank::class);
+        }
+
+        $this->validateType($value);
 
         if ($value === null) {
-            /** @psalm-suppress NoInterfaceProperties */
             if (!$constraint->allowNull) {
                 $this->addViolation(new Violation(invalidValue: $value, message: $constraint->message, path: null));
             }
@@ -33,23 +36,18 @@ final class NotBlankValidator extends AbstractConstraintValidator
         };
 
         if ($length === 0) {
-            /** @psalm-suppress NoInterfaceProperties */
             $this->addViolation(new Violation(invalidValue: $value, message: $constraint->message, path: null));
         }
     }
 
-    private function performBasicValidation(mixed $value, ConstraintInterface $constraint): void
+    private function validateType(mixed $value): void
     {
-        if (!$constraint instanceof NotBlank) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: NotBlank::class);
-        }
-
-        if (
-            $value !== null
+        /** @noinspection PhpConditionCheckedByNextConditionInspection */
+        if ($value !== null
             && !is_string($value)
             && !is_array($value)
-            && !$value instanceof Stringable
             && !$value instanceof Countable
+            && !$value instanceof Stringable
         ) {
             throw new UnexpectedTypeException(
                 actualType: gettype($value),

@@ -8,15 +8,14 @@ use ArrayIterator;
 use Traversable;
 
 /**
- * @psalm-api
  * @implements ViolationListInterface<ViolationInterface>
+ *
+ * @psalm-api
  */
 final class ViolationList implements ViolationListInterface
 {
     /**
      * @param ViolationInterface[] $violations
-     *
-     * @psalm-api
      */
     public function __construct(
         private array $violations = [],
@@ -31,14 +30,6 @@ final class ViolationList implements ViolationListInterface
     public function count(): int
     {
         return count($this->violations);
-    }
-
-    /**
-     * @return ViolationInterface[]
-     */
-    public function getAll(): array
-    {
-        return $this->violations;
     }
 
     /**

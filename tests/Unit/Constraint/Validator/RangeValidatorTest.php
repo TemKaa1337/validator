@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Constraint\Validator;
 
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
+use ReflectionException;
 use stdClass;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\Validator\RangeValidator;
-use Temkaa\SimpleValidator\Constraint\ViolationInterface;
 use Temkaa\SimpleValidator\Exception\InvalidConstraintConfigurationException;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
 use Temkaa\SimpleValidator\Validator;
+use Throwable;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 final class RangeValidatorTest extends AbstractValidatorTestCase
 {
     public static function getDataForInvalidTest(): iterable
@@ -157,6 +163,7 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
         ];
 
         $object = new class {
+            /** @noinspection PropertyInitializationFlawsInspection */
             #[Assert\Range(min: 1, minMessage: '')]
             public null $test = null;
         };
@@ -173,13 +180,17 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
 
     /**
      * @dataProvider getDataForInvalidTest
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
     public function testInvalid(object $value, mixed $invalidValue): void
     {
         $errors = (new Validator())->validate($value);
 
         $this->assertCount(1, $errors);
-        /** @var ViolationInterface $error */
+
         foreach ($errors as $error) {
             self::assertEquals('validation exception', $error->getMessage());
             self::assertNull($error->getPath());
@@ -189,11 +200,16 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
 
     /**
      * @dataProvider getDataForValidTest
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
     public function testValid(object $value): void
     {
         $errors = (new Validator())->validate($value);
 
+        /** @psalm-suppress TypeDoesNotContainType */
         $this->assertEmpty($errors);
     }
 
@@ -213,6 +229,12 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
 
     /**
      * @dataProvider getDataForValidateWithInvalidConstraintSettingsTest
+     *
+     * @param class-string<Throwable> $exception
+     * @param string                  $exceptionMessage
+     * @param ConstraintInterface     $constraint
+     *
+     * @return void
      */
     public function testValidateWithInvalidConstraintSettings(
         string $exception,
@@ -227,6 +249,10 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
 
     /**
      * @dataProvider getDataForValidateWithUnsupportedValueTypeTest
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
     public function testValidateWithUnsupportedValueType(
         object $value,

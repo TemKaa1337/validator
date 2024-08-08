@@ -21,6 +21,10 @@ final class LengthValidator extends AbstractConstraintValidator
 {
     public function validate(mixed $value, ConstraintInterface $constraint): void
     {
+        if (!$constraint instanceof Length) {
+            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Length::class);
+        }
+
         $this->validateConstraint($constraint);
         $this->validateValue($value);
 
@@ -30,18 +34,16 @@ final class LengthValidator extends AbstractConstraintValidator
 
         /** @psalm-suppress NoInterfaceProperties */
         if ($constraint->minLength !== null && $constraint->minLength > $length) {
+            /** @psalm-suppress PossiblyNullArgument */
             $this->addViolation(new Violation(invalidValue: $value, message: $constraint->minMessage, path: null));
         } else if ($constraint->maxLength !== null && $constraint->maxLength < $length) {
+            /** @psalm-suppress PossiblyNullArgument */
             $this->addViolation(new Violation(invalidValue: $value, message: $constraint->maxMessage, path: null));
         }
     }
 
-    private function validateConstraint(ConstraintInterface $constraint): void
+    private function validateConstraint(Length $constraint): void
     {
-        if (!$constraint instanceof Length) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Length::class);
-        }
-
         if ($constraint->minLength === null && $constraint->maxLength === null) {
             throw new InvalidConstraintConfigurationException(
                 'Length constraint must have one of "minLength" or "maxLength" argument set.',
@@ -93,6 +95,7 @@ final class LengthValidator extends AbstractConstraintValidator
 
     private function validateValue(mixed $value): void
     {
+        /** @noinspection PhpConditionCheckedByNextConditionInspection */
         if (!is_string($value) && !is_array($value) && !$value instanceof Countable && !$value instanceof Stringable) {
             throw new UnexpectedTypeException(
                 actualType: gettype($value),

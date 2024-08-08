@@ -8,5 +8,10 @@ use Temkaa\SimpleValidator\AbstractConstraintValidator;
 
 interface ConstraintInterface
 {
-    public function getHandler(): AbstractConstraintValidator;
+    /**
+     * @template T of AbstractConstraintValidator
+     *
+     * @return class-string<T>
+     */
+    public function getHandler(): string;
 }

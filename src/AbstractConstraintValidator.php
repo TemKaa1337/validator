@@ -13,7 +13,7 @@ abstract class AbstractConstraintValidator
 {
     private readonly ViolationListInterface $violations;
 
-    final public function __construct()
+    public function __construct()
     {
         $this->violations = new ViolationList();
     }
