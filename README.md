@@ -1,10 +1,8 @@
 ### This is a simple Validator implementation.
 
 ## Here are some todos:
-1. implement cascade assert on objects
-2. rework to accept container interface
-3. rework attribute interface to provide class name of validator
-4. implement correct path
+1. implement cascade assert on properties
+2. implement constraint violations correct error path
 
 ## This package provides the following constraints:
 ### \#[Count]

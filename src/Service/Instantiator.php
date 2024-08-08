@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Utils;
+namespace Temkaa\SimpleValidator\Service;
 
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
@@ -39,12 +39,12 @@ final readonly class Instantiator
         // TODO: add tests on this
         // TODO: refactor validator
         // TODO: add Assert\Cascade (which will cascade validate everything)
-        // TODO: add CORRECT invalid paths
-        $r = $this->getClassReflection($className);
+        // TODO: add CORRECT invalid paths to constraint violations
+        $reflection = $this->getClassReflection($className);
 
         $resolvedArguments = [];
-        if (!$constructor = $r->getConstructor()) {
-            return $r->newInstanceArgs($resolvedArguments);
+        if (!$constructor = $reflection->getConstructor()) {
+            return $reflection->newInstanceArgs($resolvedArguments);
         }
 
         $parameters = $constructor->getParameters();
@@ -54,7 +54,7 @@ final readonly class Instantiator
             $resolvedArguments[] = $resolvedParameter;
         }
 
-        return $r->newInstanceArgs($resolvedArguments);
+        return $reflection->newInstanceArgs($resolvedArguments);
     }
 
     /**
@@ -71,15 +71,15 @@ final readonly class Instantiator
             );
         }
 
-        $r = new ReflectionClass($className);
-        if (!$r->isInstantiable()) {
+        $reflection = new ReflectionClass($className);
+        if (!$reflection->isInstantiable()) {
             throw new CannotInstantiateValidatorException(
                 message: sprintf('Cannot instantiate validator "%s" as it is not instantiable.', $className),
             );
         }
 
         /** @psalm-suppress TypeDoesNotContainType */
-        if (!$r->implementsInterface(ConstraintValidatorInterface::class)) {
+        if (!$reflection->implementsInterface(ConstraintValidatorInterface::class)) {
             throw new CannotInstantiateValidatorException(
                 message: sprintf(
                     'Cannot instantiate validator "%s" as it does not implement "%s" interface.',
@@ -89,7 +89,7 @@ final readonly class Instantiator
             );
         }
 
-        return $r;
+        return $reflection;
     }
 
     /**

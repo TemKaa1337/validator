@@ -36,8 +36,8 @@ final class ValidatorTest extends TestCase
                     throw new UnexpectedTypeException(actualType: gettype($value), expectedType: 'object');
                 }
 
-                $r = new ReflectionClass($value);
-                foreach ($r->getProperties() as $property) {
+                $reflection = new ReflectionClass($value);
+                foreach ($reflection->getProperties() as $property) {
                     if (!$property->isInitialized($value)) {
                         /** @noinspection PhpPossiblePolymorphicInvocationInspection */
                         /** @psalm-suppress NoInterfaceProperties */

@@ -16,7 +16,7 @@ use Temkaa\SimpleValidator\Constraint\ViolationList;
 use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
 use Temkaa\SimpleValidator\Exception\UninitializedPropertyException;
 use Temkaa\SimpleValidator\Exception\UnsupportedActionException;
-use Temkaa\SimpleValidator\Utils\Instantiator;
+use Temkaa\SimpleValidator\Service\Instantiator;
 
 /**
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
@@ -89,8 +89,8 @@ final readonly class Validator implements ValidatorInterface
     {
         $violations = new ViolationList();
 
-        $r = new ReflectionClass($value);
-        if ($r->isInternal()) {
+        $reflection = new ReflectionClass($value);
+        if ($reflection->isInternal()) {
             return $violations;
         }
 
@@ -106,7 +106,7 @@ final readonly class Validator implements ValidatorInterface
             return $violations;
         }
 
-        $attributes = $r->getAttributes();
+        $attributes = $reflection->getAttributes();
         foreach ($attributes as $attribute) {
             $constraint = $attribute->newInstance();
             if (!$constraint instanceof ConstraintInterface) {
@@ -120,7 +120,7 @@ final readonly class Validator implements ValidatorInterface
             $violations->merge($handler->getViolations());
         }
 
-        $properties = $r->getProperties();
+        $properties = $reflection->getProperties();
         foreach ($properties as $property) {
             $attributes = $property->getAttributes();
 
