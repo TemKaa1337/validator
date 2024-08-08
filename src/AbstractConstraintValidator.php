@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Temkaa\SimpleValidator;
 
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
+use Temkaa\SimpleValidator\Constraint\ConstraintValidatorInterface;
 use Temkaa\SimpleValidator\Constraint\ViolationInterface;
 use Temkaa\SimpleValidator\Constraint\ViolationList;
 use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
 
-abstract class AbstractConstraintValidator
+abstract class AbstractConstraintValidator implements ConstraintValidatorInterface
 {
     private readonly ViolationListInterface $violations;
 

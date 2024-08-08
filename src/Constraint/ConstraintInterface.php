@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Temkaa\SimpleValidator\Constraint;
 
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
-
 interface ConstraintInterface
 {
     /**
-     * @template T of AbstractConstraintValidator
+     * @template T of ConstraintValidatorInterface
      *
      * @return class-string<T>
      */

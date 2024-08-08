@@ -11,7 +11,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
+use Temkaa\SimpleValidator\Constraint\ConstraintValidatorInterface;
 use Temkaa\SimpleValidator\Exception\CannotInstantiateValidatorException;
 
 /**
@@ -25,7 +25,7 @@ final readonly class Instantiator
     }
 
     /**
-     * @template T of AbstractConstraintValidator
+     * @template T of ConstraintValidatorInterface
      * @param class-string<T> $className
      *
      * @return T
@@ -38,13 +38,9 @@ final readonly class Instantiator
     {
         // TODO: add tests on this
         // TODO: refactor validator
-        // TODO: fix all issues in tests
-        $r = new ReflectionClass($className);
-        if (!$r->isInstantiable()) {
-            throw new CannotInstantiateValidatorException(
-                message: sprintf('Cannot instantiate validator "%s" as it is not instantiable.', $className),
-            );
-        }
+        // TODO: add Assert\Cascade (which will cascade validate everything)
+        // TODO: add CORRECT invalid paths
+        $r = $this->getClassReflection($className);
 
         $resolvedArguments = [];
         if (!$constructor = $r->getConstructor()) {
@@ -59,6 +55,41 @@ final readonly class Instantiator
         }
 
         return $r->newInstanceArgs($resolvedArguments);
+    }
+
+    /**
+     * @template T of ConstraintValidatorInterface
+     * @param class-string<T> $className
+     *
+     * @return ReflectionClass<T>
+     */
+    private function getClassReflection(string $className): ReflectionClass
+    {
+        if (!class_exists($className)) {
+            throw new CannotInstantiateValidatorException(
+                message: sprintf('Cannot instantiate validator "%s" as this class does not exist.', $className),
+            );
+        }
+
+        $r = new ReflectionClass($className);
+        if (!$r->isInstantiable()) {
+            throw new CannotInstantiateValidatorException(
+                message: sprintf('Cannot instantiate validator "%s" as it is not instantiable.', $className),
+            );
+        }
+
+        /** @psalm-suppress TypeDoesNotContainType */
+        if (!$r->implementsInterface(ConstraintValidatorInterface::class)) {
+            throw new CannotInstantiateValidatorException(
+                message: sprintf(
+                    'Cannot instantiate validator "%s" as it does not implement "%s" interface.',
+                    $className,
+                    ConstraintValidatorInterface::class,
+                ),
+            );
+        }
+
+        return $r;
     }
 
     /**

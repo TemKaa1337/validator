@@ -97,6 +97,7 @@ namespace App;
 use Attribute;
 use Temkaa\SimpleValidator\AbstractConstraintValidator;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
+use Temkaa\SimpleValidator\Constraint\ConstraintValidatorInterface;
 use Temkaa\SimpleValidator\Constraint\ViolationInterface;
 use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
 use Temkaa\SimpleValidator\Validator;
@@ -109,9 +110,9 @@ final readonly class Constraint implements ConstraintInterface
     ) {
     }
 
-    public function getHandler(): AbstractConstraintValidator
+    public function getHandler(): string
     {
-        return new ConstraintHandler();
+        return ConstraintHandler::class;
     }
 }
 
@@ -125,6 +126,36 @@ final class ConstraintHandler extends AbstractConstraintValidator
 
         if ($value->age !== 18) {
             $this->addViolation(new Violation(invalidValue: $value, message: $constraint->message, path: null));
+        }
+    }
+}
+
+// OR
+
+final class ConstraintHandler implements ConstraintValidatorInterface
+{
+    public function getViolations(): ViolationListInterface;
+
+    public function validate(mixed $value, ConstraintInterface $constraint): void;
+    
+    public function __construct(
+        private readonly ViolationListInterface $violationList = new ViolationList(),
+    ) {
+    }
+
+    public function getViolations(): ViolationListInterface
+    {
+        return $this->violationList;
+    }
+
+    public function validate(mixed $value, ConstraintInterface $constraint): void
+    {
+        if (!$constraint instanceof Constraint) {
+            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Constraint::class);
+        }
+
+        if ($value->age !== 18) {
+            $this->violationList->add(new Violation(invalidValue: $value, message: $constraint->message, path: null));
         }
     }
 }
