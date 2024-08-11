@@ -22,13 +22,13 @@ final class CountValidatorTest extends AbstractValidatorTestCase
             #[Assert\Count(expected: 1, message: 'validation exception')]
             public array $test = ['test1', 'test2'];
         };
-        yield [$object, ['test1', 'test2']];
+        yield [$object, ['test1', 'test2'], 1];
 
         $object = new class {
             #[Assert\Count(expected: 1, message: 'validation exception')]
             public array $test = [];
         };
-        yield [$object, []];
+        yield [$object, [], 1];
 
         $countable = new class implements Countable {
             public function count(): int
@@ -43,7 +43,7 @@ final class CountValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $countable];
+        yield [$object, $countable, 1];
     }
 
     public static function getDataForValidTest(): iterable
@@ -122,11 +122,11 @@ final class CountValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue): void
+    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
-        $this->assertCount(1, $errors);
+        $this->assertCount($expectedErrorsCount, $errors);
 
         foreach ($errors as $error) {
             self::assertEquals('validation exception', $error->getMessage());

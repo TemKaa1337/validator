@@ -7,6 +7,7 @@ namespace Tests\Unit;
 use Attribute;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionClass;
 use ReflectionException;
@@ -15,9 +16,51 @@ use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\Violation;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
 use Temkaa\SimpleValidator\Validator;
+use Tests\Unit\Stub\CustomClass;
+use Tests\Unit\Stub\CustomConstraint;
+use Tests\Unit\Stub\CustomValidator;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 final class ValidatorTest extends TestCase
 {
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
+     */
+    public function testValidateCustomConstraintWithContainer(): void
+    {
+        $testClass = new #[CustomConstraint] class {
+            #[CustomConstraint]
+            public string $string = 'string';
+        };
+
+        $container = new class implements ContainerInterface {
+            public function get(string $id): object
+            {
+                return new CustomValidator(new CustomClass());
+            }
+
+            public function has(string $id): bool
+            {
+                return (bool) $id;
+            }
+        };
+
+        $errors = (new Validator($container))->validate($testClass);
+        self::assertCount(2, $errors);
+
+        $errors = iterator_to_array($errors);
+
+        foreach ($errors as $index => $error) {
+            self::assertEquals('message', $error->getMessage());
+            self::assertNull($error->getPath());
+            self::assertEquals($index === 0 ? $testClass : 'string', $error->getInvalidValue());
+        }
+    }
+
     /**
      * @throws NotFoundExceptionInterface
      * @throws ContainerExceptionInterface

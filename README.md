@@ -3,6 +3,9 @@
 ## Here are some todos:
 1. implement cascade assert on properties
 2. implement constraint violations correct error path
+3. refactoring
+4. add cascade to readme
+5. add container clarification to readme
 
 ## This package provides the following constraints:
 ### \#[Count]
@@ -34,6 +37,10 @@ The same as Length but for `int` and `float`.
 
 ### \#[Regex]
 Checks whether the specific value matches given regexp expression.
+
+### \#[Cascade]
+If your object contains other object as property which you want to validate or array|iterable of objects you can place
+this attribute and validator will validate this object by its own constraints or array of objects.
 
 ### Usage:
 ```php
@@ -67,10 +74,25 @@ final class Test
     #[Assert\LessThan(threshold: 95.5, message: 'message')]
     public float $weight;
     
-    public 
-    
     #[Assert\Regex('/any_pattern/', message: 'message')]
     public string $username;
+
+    #[Assert\Cascade]
+    public iterable $arrayOfObjects;
+    
+    public function __construct()
+    {
+        $testObject = new TestObject();
+        $testObject->string = 'string';
+
+        $this->arrayOfObjects = [new TestObject()];
+    }
+}
+
+final class TestObject
+{
+    #[Assert\Length(minLength: 2, minMessage: 'min message')]
+    public string $string;
 }
 
 $validator = new Validator();

@@ -9,7 +9,7 @@ use Throwable;
 
 abstract class AbstractValidatorTestCase extends TestCase
 {
-    abstract public function testInvalid(object $value, mixed $invalidValue): void;
+    abstract public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void;
 
     abstract public function testValid(object $value): void;
 

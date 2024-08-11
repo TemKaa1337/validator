@@ -23,20 +23,20 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
             #[Assert\NotBlank(message: 'validation exception')]
             public string $test = '';
         };
-        yield [$object, ''];
+        yield [$object, '', 1];
 
         $object = new class {
             #[Assert\NotBlank(message: 'validation exception')]
             public array $test = [];
         };
-        yield [$object, []];
+        yield [$object, [], 1];
 
         $object = new class {
             /** @noinspection PropertyInitializationFlawsInspection */
             #[Assert\NotBlank(message: 'validation exception')]
             public null $test = null;
         };
-        yield [$object, null];
+        yield [$object, null, 1];
 
         $countable = new class implements Countable {
             public function count(): int
@@ -51,7 +51,7 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $countable];
+        yield [$object, $countable, 1];
 
         $stringable = new class implements Stringable {
             public function __toString(): string
@@ -66,7 +66,7 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $stringable];
+        yield [$object, $stringable, 1];
     }
 
     public static function getDataForValidTest(): iterable
@@ -178,11 +178,11 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue): void
+    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
-        $this->assertCount(1, $errors);
+        $this->assertCount($expectedErrorsCount, $errors);
 
         foreach ($errors as $error) {
             self::assertEquals('validation exception', $error->getMessage());

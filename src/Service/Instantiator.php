@@ -13,6 +13,7 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use Temkaa\SimpleValidator\Constraint\ConstraintValidatorInterface;
 use Temkaa\SimpleValidator\Exception\CannotInstantiateValidatorException;
+use Temkaa\SimpleValidator\ValidatorInterface;
 
 /**
  * @internal
@@ -20,6 +21,7 @@ use Temkaa\SimpleValidator\Exception\CannotInstantiateValidatorException;
 final readonly class Instantiator
 {
     public function __construct(
+        private ValidatorInterface $validator,
         private ?ContainerInterface $container = null,
     ) {
     }
@@ -36,23 +38,20 @@ final readonly class Instantiator
      */
     public function instantiate(string $className): object
     {
-        // TODO: add tests on this
         // TODO: refactor validator
-        // TODO: add Assert\Cascade (which will cascade validate everything)
         // TODO: add CORRECT invalid paths to constraint violations
+        // TODO: handle container exceptions and convert to custom ones
+        if ($this->container?->has($className)) {
+            return $this->container->get($className);
+        }
+
         $reflection = $this->getClassReflection($className);
 
-        $resolvedArguments = [];
-        if (!$constructor = $reflection->getConstructor()) {
-            return $reflection->newInstanceArgs($resolvedArguments);
-        }
-
-        $parameters = $constructor->getParameters();
-        foreach ($parameters as $parameter) {
-            $resolvedParameter = $this->resolveParameter($parameter, $className);
-
-            $resolvedArguments[] = $resolvedParameter;
-        }
+        $constructor = $reflection->getConstructor();
+        $resolvedArguments = array_map(
+            fn (ReflectionParameter $parameter): mixed => $this->resolveParameter($parameter, $className),
+            $constructor?->getParameters() ?? [],
+        );
 
         return $reflection->newInstanceArgs($resolvedArguments);
     }
@@ -101,35 +100,32 @@ final readonly class Instantiator
         $parameterType = $parameter->getType();
         $parameterName = $parameter->getName();
 
-        if (!$this->container) {
-            if (!$parameter->isDefaultValueAvailable()) {
-                throw new CannotInstantiateValidatorException(
-                    sprintf(
-                        'Cannot instantiate validator "%s" with argument "%s". '
-                        .'Either instantiate "%s" with "%s" or provide a default value.',
-                        $className,
-                        $parameterName,
-                        self::class,
-                        ContainerInterface::class,
-                    ),
-                );
+        if (!$parameterType instanceof ReflectionNamedType) {
+            if ($parameter->isDefaultValueAvailable()) {
+                return $parameter->getDefaultValue();
             }
 
-            return $parameter->getDefaultValue();
-        }
-
-        if (!$parameterType instanceof ReflectionNamedType) {
-            throw new CannotInstantiateValidatorException(
-                sprintf(
-                    'Cannot instantiate validator "%s" with argument "%s" as its type is "%s".',
+            $message = $parameterType === null
+                ? sprintf(
+                    'Cannot instantiate validator "%s" with argument "%s" as it does not have a type.',
                     $className,
                     $parameterName,
-                    $parameterType ? (string) $parameterType : 'null',
-                ),
-            );
+                )
+                : sprintf(
+                    'Cannot instantiate validator "%s" with argument "%s" as its type is not concrete - "%s".',
+                    $className,
+                    $parameterName,
+                    $parameterType,
+                );
+
+            throw new CannotInstantiateValidatorException($message);
         }
 
         if ($parameterType->isBuiltin()) {
+            if ($parameter->isDefaultValueAvailable()) {
+                return $parameter->getDefaultValue();
+            }
+
             throw new CannotInstantiateValidatorException(
                 sprintf(
                     'Cannot instantiate validator "%s" with argument "%s" as its type is built-in.',
@@ -139,17 +135,22 @@ final readonly class Instantiator
             );
         }
 
-        if (!$this->container->has($parameterName)) {
-            throw new CannotInstantiateValidatorException(
-                sprintf(
-                    'Cannot instantiate validator "%s" with argument "%s:%s" as it does not exist in container.',
-                    $className,
-                    $parameterName,
-                    $parameterType->getName(),
-                ),
-            );
+        $parameterTypeName = $parameterType->getName();
+        if ($this->container?->has($parameterTypeName)) {
+            return $this->container->get($parameterTypeName);
         }
 
-        return $this->container->get($parameterName);
+        if ($parameterTypeName === ValidatorInterface::class) {
+            return $this->validator;
+        }
+
+        throw new CannotInstantiateValidatorException(
+            sprintf(
+                'Cannot instantiate validator "%s" with argument "%s:%s" as it does not exist in container.',
+                $className,
+                $parameterName,
+                $parameterType->getName(),
+            ),
+        );
     }
 }

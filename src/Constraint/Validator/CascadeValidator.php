@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Temkaa\SimpleValidator\Constraint\Validator;
 
-use iterable;
 use Temkaa\SimpleValidator\AbstractConstraintValidator;
 use Temkaa\SimpleValidator\Constraint\Assert\Cascade;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
@@ -26,17 +25,20 @@ final class CascadeValidator extends AbstractConstraintValidator
             throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Cascade::class);
         }
 
-        is_iterable();
-        if ($value instanceof iterable) {
-
+        if (!is_iterable($value) && !is_object($value)) {
+            throw new UnexpectedTypeException(actualType: gettype($value), expectedType: 'object|iterable');
         }
 
+        $value = is_iterable($value) ? $value : [$value];
 
-        // option 1 - iterable of objects to validate
-        // option 2 - object that needs to be validate
-        $errors = $this->validator->validate($value, $constraint);
-        foreach ($errors as $error) {
-            $this->addViolation($error);
+        foreach ($value as $item) {
+            if (!is_object($item)) {
+                throw new UnexpectedTypeException(actualType: gettype($item), expectedType: 'object');
+            }
+
+            $errors = $this->validator->validate($item);
+
+            $this->addErrors($errors);
         }
     }
 

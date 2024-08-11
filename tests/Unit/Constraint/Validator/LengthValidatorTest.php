@@ -26,25 +26,25 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
             #[Assert\Length(minLength: 1, minMessage: 'validation exception')]
             public string $test = '';
         };
-        yield [$object, ''];
+        yield [$object, '', 1];
 
         $object = new class {
             #[Assert\Length(maxLength: 1, maxMessage: 'validation exception')]
             public string $test = 'aa';
         };
-        yield [$object, 'aa'];
+        yield [$object, 'aa', 1];
 
         $object = new class {
             #[Assert\Length(minLength: 1, minMessage: 'validation exception')]
             public array $test = [];
         };
-        yield [$object, []];
+        yield [$object, [], 1];
 
         $object = new class {
             #[Assert\Length(maxLength: 1, maxMessage: 'validation exception')]
             public array $test = ['test', 'test'];
         };
-        yield [$object, ['test', 'test']];
+        yield [$object, ['test', 'test'], 1];
 
         $countable = new class implements Countable {
             public function count(): int
@@ -59,7 +59,7 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $countable];
+        yield [$object, $countable, 1];
 
         $countable = new class implements Countable {
             public function count(): int
@@ -74,7 +74,7 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $countable];
+        yield [$object, $countable, 1];
 
         $stringable = new class implements Stringable {
             public function __toString(): string
@@ -89,7 +89,7 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $stringable];
+        yield [$object, $stringable, 1];
     }
 
     public static function getDataForValidTest(): iterable
@@ -303,11 +303,11 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue): void
+    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
-        $this->assertCount(1, $errors);
+        $this->assertCount($expectedErrorsCount, $errors);
 
         foreach ($errors as $error) {
             self::assertEquals('validation exception', $error->getMessage());

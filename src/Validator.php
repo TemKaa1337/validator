@@ -12,6 +12,7 @@ use ReflectionException;
 use Temkaa\SimpleValidator\Constraint\Assert\Initialized;
 use Temkaa\SimpleValidator\Constraint\Assert\NotBlank;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
+use Temkaa\SimpleValidator\Constraint\Validator\CascadeValidator;
 use Temkaa\SimpleValidator\Constraint\ViolationList;
 use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
 use Temkaa\SimpleValidator\Exception\UninitializedPropertyException;
@@ -30,7 +31,7 @@ final readonly class Validator implements ValidatorInterface
     public function __construct(
         ?ContainerInterface $container = null,
     ) {
-        $this->instantiator = new Instantiator($container);
+        $this->instantiator = new Instantiator($this, $container);
     }
 
     /**
@@ -89,6 +90,9 @@ final readonly class Validator implements ValidatorInterface
     {
         $violations = new ViolationList();
 
+        // TODO: what if i want to validate array of objects OR iterable of objects
+        // TODO: think about throwing exception if property is not initialized
+        // and some other validator is proceeded (eg positive assert on property which is not initialized)
         $reflection = new ReflectionClass($value);
         if ($reflection->isInternal()) {
             return $violations;

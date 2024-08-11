@@ -21,25 +21,25 @@ final class PositiveValidatorTest extends AbstractValidatorTestCase
             #[Assert\Positive(message: 'validation exception')]
             public int $test = 0;
         };
-        yield [$object, 0];
+        yield [$object, 0, 1];
 
         $object = new class {
             #[Assert\Positive(message: 'validation exception')]
             public int $test = -1;
         };
-        yield [$object, -1];
+        yield [$object, -1, 1];
 
         $object = new class {
             #[Assert\Positive(message: 'validation exception')]
             public float $test = 0.0;
         };
-        yield [$object, 0.0];
+        yield [$object, 0.0, 1];
 
         $object = new class {
             #[Assert\Positive(message: 'validation exception')]
             public float $test = -0.1;
         };
-        yield [$object, -0.1];
+        yield [$object, -0.1, 1];
     }
 
     public static function getDataForValidTest(): iterable
@@ -116,11 +116,11 @@ final class PositiveValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue): void
+    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
-        $this->assertCount(1, $errors);
+        $this->assertCount($expectedErrorsCount, $errors);
 
         foreach ($errors as $error) {
             self::assertEquals('validation exception', $error->getMessage());

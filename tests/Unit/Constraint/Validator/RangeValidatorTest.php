@@ -27,37 +27,37 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
             #[Assert\Range(min: 1, minMessage: 'validation exception')]
             public int $test = 0;
         };
-        yield [$object, 0];
+        yield [$object, 0, 1];
 
         $object = new class {
             #[Assert\Range(max: 1, maxMessage: 'validation exception')]
             public int $test = 2;
         };
-        yield [$object, 2];
+        yield [$object, 2, 1];
 
         $object = new class {
             #[Assert\Range(min: 1, max: 2, minMessage: 'validation exception', maxMessage: 'validation exception')]
             public int $test = 3;
         };
-        yield [$object, 3];
+        yield [$object, 3, 1];
 
         $object = new class {
             #[Assert\Range(min: 1.1, minMessage: 'validation exception')]
             public float $test = 1.09;
         };
-        yield [$object, 1.09];
+        yield [$object, 1.09, 1];
 
         $object = new class {
             #[Assert\Range(max: 1.1, maxMessage: 'validation exception')]
             public float $test = 1.11;
         };
-        yield [$object, 1.11];
+        yield [$object, 1.11, 1];
 
         $object = new class {
             #[Assert\Range(min: 1.1, max: 2.2, minMessage: 'validation exception', maxMessage: 'validation exception')]
             public float $test = 2.21;
         };
-        yield [$object, 2.21];
+        yield [$object, 2.21, 1];
     }
 
     public static function getDataForValidTest(): iterable
@@ -185,11 +185,11 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue): void
+    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
-        $this->assertCount(1, $errors);
+        $this->assertCount($expectedErrorsCount, $errors);
 
         foreach ($errors as $error) {
             self::assertEquals('validation exception', $error->getMessage());

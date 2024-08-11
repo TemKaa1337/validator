@@ -22,7 +22,7 @@ final class RegexValidatorTest extends AbstractValidatorTestCase
             #[Assert\Regex(pattern: '/123/', message: 'validation exception')]
             public string $test = 'asd';
         };
-        yield [$object, 'asd'];
+        yield [$object, 'asd', 1];
 
         $stringable = new class implements Stringable {
             public function __toString(): string
@@ -37,7 +37,7 @@ final class RegexValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $stringable];
+        yield [$object, $stringable, 1];
     }
 
     public static function getDataForValidTest(): iterable
@@ -120,11 +120,11 @@ final class RegexValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue): void
+    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
-        $this->assertCount(1, $errors);
+        $this->assertCount($expectedErrorsCount, $errors);
 
         foreach ($errors as $error) {
             self::assertEquals('validation exception', $error->getMessage());
