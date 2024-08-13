@@ -6,7 +6,8 @@ own constraints that require additional objects;
 - Performed small refactoring;
 - Fixed null path of invalid values;
 - Added [ValidatedValueInterface](src/Model/ValidatedValueInterface.php);
-- Added auto-release tag drafter.
+- Added auto-release tag drafter;
+- Upgraded PHP version to `8.3.*`.
 
 ### v0.0.1
 ##### Features:

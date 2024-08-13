@@ -57,7 +57,7 @@ final class ValidatorTest extends TestCase
 
         foreach ($errors as $index => $error) {
             self::assertEquals('message', $error->getMessage());
-            self::assertNull($error->getPath());
+            self::assertEquals('path', $error->getPath());
             self::assertEquals($index === 0 ? $testClass : 'string', $error->getInvalidValue());
         }
     }

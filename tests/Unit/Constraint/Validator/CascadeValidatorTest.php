@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Constraint\Validator;
 
 use ArrayIterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionException;
@@ -12,6 +13,7 @@ use stdClass;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\Validator\CascadeValidator;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Exception\UnsupportedActionException;
 use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
 use Tests\Unit\Stub\Cascade\ParentClass;
@@ -265,12 +267,8 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
         };
         yield [
             $object,
-            UnexpectedTypeException::class,
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                'object|iterable',
-                'string',
-            ),
+            UnsupportedActionException::class,
+            'Cannot validate iterable<string> as the only supported types are object|iterable<object>.',
         ];
 
         $object = new class {
@@ -279,12 +277,8 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
         };
         yield [
             $object,
-            UnexpectedTypeException::class,
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                'object|iterable',
-                'boolean',
-            ),
+            UnsupportedActionException::class,
+            'Cannot validate iterable<boolean> as the only supported types are object|iterable<object>.',
         ];
 
         $object = new class {
@@ -294,12 +288,8 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
         };
         yield [
             $object,
-            UnexpectedTypeException::class,
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                'object|iterable',
-                'NULL',
-            ),
+            UnsupportedActionException::class,
+            'Cannot validate iterable<NULL> as the only supported types are object|iterable<object>.',
         ];
 
         $object = new class {
@@ -308,45 +298,9 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
         };
         yield [
             $object,
-            UnexpectedTypeException::class,
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                'object',
-                'string',
-            ),
+            UnsupportedActionException::class,
+            'Cannot validate iterable<string> as the only supported types are object|iterable<object>.',
         ];
-    }
-
-    /**
-     * @dataProvider getDataForInvalidTest
-     *
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     * @throws ReflectionException
-     */
-    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
-    {
-        $errors = (new Validator())->validate($value);
-
-        $this->assertCount($expectedErrorsCount, $errors);
-
-        foreach ($errors as $index => $error) {
-            self::assertEquals($invalidValuesInfo[$index]['message'], $error->getMessage());
-            self::assertEquals($invalidValuesInfo[$index]['path'], $error->getPath());
-            self::assertEquals($invalidValuesInfo[$index]['invalidValue'], $error->getInvalidValue());
-        }
-        // if (is_array($invalidValue) && array_key_exists('invalidValues', $invalidValue)) {
-        //     foreach ($errors as $index => $error) {
-        //         self::assertEquals($invalidValue['invalidValues'][$index]['message'], $error->getMessage());
-        //         self::assertNull($error->getPath());
-        //         self::assertEquals($invalidValue['invalidValues'][$index]['invalidValue'], $error->getInvalidValue());
-        //     }
-        // } else {
-        //     $errors = iterator_to_array($errors);
-        //     self::assertEquals('validation exception 3', $errors[0]->getMessage());
-        //     self::assertNull($errors[0]->getPath());
-        //     self::assertEquals($invalidValue, $errors[0]->getInvalidValue());
-        // }
     }
 
     /**
@@ -356,63 +310,35 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
      */
     public function testInvalidWithAppliedAsConstraint(): void
     {
-        // $object = new class {
-        //     #[Assert\Count(expected: 1, message: 'validation exception')]
-        //     public array $test = ['test1'];
-        //
-        //     #[Assert\Cascade]
-        //     public array $arrayOfObjects;
-        //
-        //     public function __construct()
-        //     {
-        //         $class1 = new class {
-        //             #[Assert\Positive(message: 'validation exception')]
-        //             public int $int = 10;
-        //
-        //             #[Assert\Cascade]
-        //             public array $arrayOfObjects;
-        //
-        //             public function __construct()
-        //             {
-        //                 $class1 = new class {
-        //                     #[Assert\Positive(message: 'validation exception 3')]
-        //                     public int $int = -1;
-        //                 };
-        //
-        //                 $this->arrayOfObjects = [$class1];
-        //             }
-        //         };
-        //         $this->arrayOfObjects = [$class1];
-        //     }
-        // };
-
         $object = new ParentClass();
 
         $errors = (new Validator())->validate($object, constraints: new Assert\Cascade());
         $this->assertCount(3, $errors);
 
-        $error = iterator_to_array($errors)[0];
+        $errors = iterator_to_array($errors);
 
-        self::assertEquals('ChildClass3 error', $error->getMessage());
-        self::assertEquals(ParentClass::class.'.class1.arrayOfObjects[0].iterableOfObjects[0].int', $error->getPath());
-        self::assertEquals(-1, $error->getInvalidValue());
+        self::assertEquals('ChildClass3 error', $errors[0]->getMessage());
+        self::assertEquals(
+            $object::class.'.class1.arrayOfObjects[0].iterableOfObjects[0].int',
+            $errors[0]->getPath(),
+        );
+        self::assertEquals(-1, $errors[0]->getInvalidValue());
 
-        self::assertEquals('ChildClass2 error', $error->getMessage());
-        self::assertEquals(ParentClass::class.'.class1.arrayOfObjects[0].array', $error->getPath());
-        self::assertEquals([1], $error->getInvalidValue());
+        self::assertEquals('ChildClass2 error', $errors[1]->getMessage());
+        self::assertEquals($object::class.'.class1.arrayOfObjects[0].array', $errors[1]->getPath());
+        self::assertEquals([1], $errors[1]->getInvalidValue());
 
-        self::assertEquals('ChildClass1 error', $error->getMessage());
-        self::assertEquals(ParentClass::class.'.class1.float', $error->getPath());
-        self::assertEquals(1.01, $error->getInvalidValue());
+        self::assertEquals('ChildClass1 error', $errors[2]->getMessage());
+        self::assertEquals($object::class.'.class1.float', $errors[2]->getPath());
+        self::assertEquals(1.01, $errors[2]->getInvalidValue());
     }
 
     /**
-     * @dataProvider getDataForValidTest
-     *
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
+    #[DataProvider('getDataForValidTest')]
     public function testValid(object $value): void
     {
         $errors = (new Validator())->validate($value);
@@ -474,19 +400,18 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new CascadeValidator((new Validator())))->validate(
+        (new CascadeValidator())->validate(
             new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
             new Assert\Positive(message: ''),
         );
     }
 
     /**
-     * @dataProvider getDataForValidateWithUnsupportedValueTypeTest
-     *
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
+    #[DataProvider('getDataForValidateWithUnsupportedValueTypeTest')]
     public function testValidateWithUnsupportedValueType(
         object $value,
         string $exception,

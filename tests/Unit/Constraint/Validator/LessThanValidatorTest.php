@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Constraint\Validator;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionException;
@@ -157,32 +158,11 @@ final class LessThanValidatorTest extends AbstractValidatorTestCase
     }
 
     /**
-     * @dataProvider getDataForInvalidTest
-     *
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
-    {
-        $errors = (new Validator())->validate($value);
-
-        $this->assertCount($expectedErrorsCount, $errors);
-
-        foreach ($errors as $index => $error) {
-            self::assertEquals($invalidValuesInfo[$index]['message'], $error->getMessage());
-            self::assertEquals($invalidValuesInfo[$index]['path'], $error->getPath());
-            self::assertEquals($invalidValuesInfo[$index]['invalidValue'], $error->getInvalidValue());
-        }
-    }
-
-    /**
-     * @dataProvider getDataForValidTest
-     *
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     * @throws ReflectionException
-     */
+    #[DataProvider('getDataForValidTest')]
     public function testValid(object $value): void
     {
         $errors = (new Validator())->validate($value);
@@ -209,12 +189,11 @@ final class LessThanValidatorTest extends AbstractValidatorTestCase
     }
 
     /**
-     * @dataProvider getDataForValidateWithUnsupportedValueTypeTest
-     *
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
+    #[DataProvider('getDataForValidateWithUnsupportedValueTypeTest')]
     public function testValidateWithUnsupportedValueType(
         object $value,
         string $exception,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Constraint\Validator;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionException;
@@ -104,66 +105,12 @@ final class InitializedValidatorTest extends AbstractValidatorTestCase
         yield [$object];
     }
 
-    public static function getDataForValidateWithUnsupportedValueTypeTest(): iterable
-    {
-        yield [
-            'string',
-            UnexpectedTypeException::class,
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                'boolean',
-                'string',
-            ),
-        ];
-
-        yield [
-            1,
-            UnexpectedTypeException::class,
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                'boolean',
-                'integer',
-            ),
-        ];
-
-        yield [
-            null,
-            UnexpectedTypeException::class,
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                'boolean',
-                'NULL',
-            ),
-        ];
-    }
-
     /**
-     * @dataProvider getDataForInvalidTest
-     *
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
-    {
-        $errors = (new Validator())->validate($value);
-
-        $this->assertCount($expectedErrorsCount, $errors);
-
-        foreach ($errors as $index => $error) {
-            self::assertEquals($invalidValuesInfo[$index]['message'], $error->getMessage());
-            self::assertEquals($invalidValuesInfo[$index]['path'], $error->getPath());
-            self::assertEquals($invalidValuesInfo[$index]['invalidValue'], $error->getInvalidValue());
-        }
-    }
-
-    /**
-     * @dataProvider getDataForValidTest
-     *
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     * @throws ReflectionException
-     */
+    #[DataProvider('getDataForValidTest')]
     public function testValid(object $value): void
     {
         $errors = (new Validator())->validate($value);
@@ -190,12 +137,12 @@ final class InitializedValidatorTest extends AbstractValidatorTestCase
     }
 
     /**
-     * @dataProvider getDataForValidateWithUnsupportedValueTypeTest
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function testValidateWithUnsupportedValueType(
-        mixed $value,
-        string $exception,
-        string $exceptionMessage,
+        mixed $value = null,
+        string $exception = null,
+        string $exceptionMessage = null,
     ): void {
         $this->markTestSkipped(message: 'This validator does not have unsupported values.');
     }

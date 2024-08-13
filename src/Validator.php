@@ -11,6 +11,7 @@ use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionException;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
+use Temkaa\SimpleValidator\Constraint\Validator\CascadeValidator;
 use Temkaa\SimpleValidator\Constraint\ViolationList;
 use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
 use Temkaa\SimpleValidator\Model\ValidatedValue;
@@ -30,7 +31,7 @@ final readonly class Validator implements ValidatorInterface
     public function __construct(
         ?ContainerInterface $container = null,
     ) {
-        $this->instantiator = new Instantiator($this, $container);
+        $this->instantiator = new Instantiator($container);
     }
 
     /**
@@ -57,27 +58,34 @@ final readonly class Validator implements ValidatorInterface
     }
 
     /**
-     * @param ValidatedValueInterface $value
-     * @param ConstraintInterface[]   $constraints
-     *
-     * @return ViolationListInterface
-     * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
+     * @throws ContainerExceptionInterface
      * @throws ReflectionException
      */
-    private function validateValue(ValidatedValueInterface $value, array $constraints): ViolationListInterface
-    {
-        $violations = new ViolationList();
+    private function validateValue(
+        ValidatedValueInterface $validatedValue,
+        ConstraintInterface $constraint,
+        ?string $errorPathPrefix = null,
+    ): ViolationListInterface {
+        $handler = $this->instantiator->instantiate($constraint->getHandler());
 
-        foreach ($constraints as $constraint) {
-            $handler = $this->instantiator->instantiate($constraint->getHandler());
+        $handler->validate($validatedValue, $constraint);
 
-            $handler->validate($value, $constraint);
+        $errors = $handler->getViolations();
 
-            $violations->merge($handler->getViolations());
+        if ($handler::class === CascadeValidator::class) {
+            if (!$validatedValue->isInitialized()) {
+                return new ViolationList();
+            }
+
+            $errors = $this->validateValues(
+                $validatedValue->getValue(),
+                constraints: [],
+                errorPathPrefix: $errorPathPrefix,
+            );
         }
 
-        return $violations;
+        return $errors;
     }
 
     /**
@@ -85,6 +93,7 @@ final readonly class Validator implements ValidatorInterface
      *
      * @param iterable|object       $values
      * @param ConstraintInterface[] $constraints
+     * @param ?string               $errorPathPrefix
      *
      * @return ViolationListInterface
      *
@@ -92,8 +101,11 @@ final readonly class Validator implements ValidatorInterface
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    private function validateValues(iterable|object $values, array $constraints): ViolationListInterface
-    {
+    private function validateValues(
+        iterable|object $values,
+        array $constraints,
+        ?string $errorPathPrefix = null,
+    ): ViolationListInterface {
         $violations = new ViolationList();
 
         $isIterable = is_iterable($values);
@@ -102,10 +114,9 @@ final readonly class Validator implements ValidatorInterface
         if ($constraints) {
             foreach ($values as $value) {
                 $validatedValue = new ValidatedValue($value, path: $value::class, isInitialized: true);
-
-                $errors = $this->validateValue($validatedValue, $constraints);
-
-                $violations->merge($errors);
+                foreach ($constraints as $constraint) {
+                    $violations->merge($this->validateValue($validatedValue, $constraint));
+                }
             }
 
             return $violations;
@@ -118,25 +129,28 @@ final readonly class Validator implements ValidatorInterface
             }
 
             $valueClassName = $value::class;
-            $path = $isIterable ? "[$index].$valueClassName" : $valueClassName;
+
+            $path = match (true) {
+                $errorPathPrefix && $isIterable   => sprintf('%s[%s]', $errorPathPrefix, $index),
+                $errorPathPrefix && !$isIterable  => $errorPathPrefix,
+                !$errorPathPrefix && $isIterable  => "[$index]",
+                !$errorPathPrefix && !$isIterable => $valueClassName,
+            };
 
             $attributes = $reflection->getAttributes(
                 ConstraintInterface::class,
                 ReflectionAttribute::IS_INSTANCEOF,
             );
             foreach ($attributes as $attribute) {
-
                 $validatedValue = new ValidatedValue($value, $path, isInitialized: true);
 
-                $errors = $this->validateValue($validatedValue, [$attribute->newInstance()]);
-
-                $violations->merge($errors);
+                $violations->merge($this->validateValue($validatedValue, $attribute->newInstance()));
             }
 
             $properties = $reflection->getProperties();
             foreach ($properties as $property) {
-                $propertyName = $property->getName();
                 $attributes = $property->getAttributes(ConstraintInterface::class, ReflectionAttribute::IS_INSTANCEOF);
+                $errorPath = sprintf('%s.%s', $path, $property->getName());
 
                 foreach ($attributes as $attribute) {
                     $isPropertyInitialized = $property->isInitialized($value);
@@ -144,13 +158,11 @@ final readonly class Validator implements ValidatorInterface
 
                     $validatedValue = new ValidatedValue(
                         $propertyValue,
-                        path: "$path.$propertyName",
+                        path: $errorPath,
                         isInitialized: $isPropertyInitialized,
                     );
 
-                    $errors = $this->validateValue($validatedValue, [$attribute->newInstance()]);
-
-                    $violations->merge($errors);
+                    $violations->merge($this->validateValue($validatedValue, $attribute->newInstance(), $errorPath));
                 }
             }
         }

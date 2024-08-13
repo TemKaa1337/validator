@@ -13,7 +13,6 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use Temkaa\SimpleValidator\Constraint\ConstraintValidatorInterface;
 use Temkaa\SimpleValidator\Exception\CannotInstantiateValidatorException;
-use Temkaa\SimpleValidator\ValidatorInterface;
 
 /**
  * @internal
@@ -21,7 +20,6 @@ use Temkaa\SimpleValidator\ValidatorInterface;
 final readonly class Instantiator
 {
     public function __construct(
-        private ValidatorInterface $validator,
         private ?ContainerInterface $container = null,
     ) {
     }
@@ -38,9 +36,6 @@ final readonly class Instantiator
      */
     public function instantiate(string $className): object
     {
-        // TODO: refactor validator
-        // TODO: add CORRECT invalid paths to constraint violations
-        // TODO: write about null if property is not initialized in readme
         if ($this->container?->has($className)) {
             return $this->container->get($className);
         }
@@ -138,10 +133,6 @@ final readonly class Instantiator
         $parameterTypeName = $parameterType->getName();
         if ($this->container?->has($parameterTypeName)) {
             return $this->container->get($parameterTypeName);
-        }
-
-        if ($parameterTypeName === ValidatorInterface::class) {
-            return $this->validator;
         }
 
         throw new CannotInstantiateValidatorException(

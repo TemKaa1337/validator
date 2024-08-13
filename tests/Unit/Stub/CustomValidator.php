@@ -23,7 +23,7 @@ final class CustomValidator extends AbstractConstraintValidator
     public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
     {
         $this->addViolation(
-            new Violation($value->getValue(), $this->class->getMessage(), path: null),
+            new Violation($value->getValue(), $this->class->getMessage(), path: 'path'),
         );
     }
 }
