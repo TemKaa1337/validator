@@ -1,3 +1,7 @@
+### v0.0.3
+##### Features:
+- Set psalm level to 2.
+
 ### v0.0.2
 ##### Features:
 - Removed `final` keyword from `__construct` method of [AbstractConstraintValidator](/src/AbstractConstraintValidator.php);
