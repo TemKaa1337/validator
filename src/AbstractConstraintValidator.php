@@ -15,6 +15,9 @@ abstract class AbstractConstraintValidator implements ConstraintValidatorInterfa
 {
     private readonly ViolationListInterface $violations;
 
+    /**
+     * @psalm-api
+     */
     public function __construct()
     {
         $this->violations = new ViolationList();

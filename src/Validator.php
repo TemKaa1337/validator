@@ -54,46 +54,28 @@ final readonly class Validator implements ValidatorInterface
             default                => [$constraints]
         };
 
-        return $this->validateValues($values, $constraints);
+        return $this->validateCollection($values, $constraints);
+    }
+
+    private function getErrorPathPrefix(
+        ?string $errorPathPrefix,
+        bool $isIterable,
+        int $listIndex,
+        string $className,
+    ): string {
+        /** @psalm-suppress RiskyTruthyFalsyComparison */
+        return match (true) {
+            $errorPathPrefix && $isIterable   => sprintf('%s[%s]', $errorPathPrefix, $listIndex),
+            $errorPathPrefix && !$isIterable  => $errorPathPrefix,
+            !$errorPathPrefix && $isIterable  => "[$listIndex]",
+            !$errorPathPrefix && !$isIterable => $className,
+        };
     }
 
     /**
-     * @throws NotFoundExceptionInterface
-     * @throws ContainerExceptionInterface
-     * @throws ReflectionException
-     */
-    private function validateValue(
-        ValidatedValueInterface $validatedValue,
-        ConstraintInterface $constraint,
-        ?string $errorPathPrefix = null,
-    ): ViolationListInterface {
-        $handler = $this->instantiator->instantiate($constraint->getHandler());
-
-        $handler->validate($validatedValue, $constraint);
-
-        $errors = $handler->getViolations();
-
-        if ($handler::class === CascadeValidator::class) {
-            if (!$validatedValue->isInitialized()) {
-                return new ViolationList();
-            }
-
-            $errors = $this->validateValues(
-                $validatedValue->getValue(),
-                constraints: [],
-                errorPathPrefix: $errorPathPrefix,
-            );
-        }
-
-        return $errors;
-    }
-
-    /**
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
-     *
-     * @param iterable|object       $values
-     * @param ConstraintInterface[] $constraints
-     * @param ?string               $errorPathPrefix
+     * @param iterable<object>|object $values
+     * @param ConstraintInterface[]   $constraints
+     * @param ?string                 $errorPathPrefix
      *
      * @return ViolationListInterface
      *
@@ -101,7 +83,7 @@ final readonly class Validator implements ValidatorInterface
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    private function validateValues(
+    private function validateCollection(
         iterable|object $values,
         array $constraints,
         ?string $errorPathPrefix = null,
@@ -114,9 +96,8 @@ final readonly class Validator implements ValidatorInterface
         if ($constraints) {
             foreach ($values as $value) {
                 $validatedValue = new ValidatedValue($value, path: $value::class, isInitialized: true);
-                foreach ($constraints as $constraint) {
-                    $violations->merge($this->validateValue($validatedValue, $constraint));
-                }
+
+                $violations->merge($this->validateItem($validatedValue, $constraints));
             }
 
             return $violations;
@@ -124,18 +105,8 @@ final readonly class Validator implements ValidatorInterface
 
         foreach ($values as $index => $value) {
             $reflection = new ReflectionClass($value);
-            if ($reflection->isInternal()) {
-                continue;
-            }
 
-            $valueClassName = $value::class;
-
-            $path = match (true) {
-                $errorPathPrefix && $isIterable   => sprintf('%s[%s]', $errorPathPrefix, $index),
-                $errorPathPrefix && !$isIterable  => $errorPathPrefix,
-                !$errorPathPrefix && $isIterable  => "[$index]",
-                !$errorPathPrefix && !$isIterable => $valueClassName,
-            };
+            $path = $this->getErrorPathPrefix($errorPathPrefix, $isIterable, $index, $value::class);
 
             $attributes = $reflection->getAttributes(
                 ConstraintInterface::class,
@@ -144,7 +115,7 @@ final readonly class Validator implements ValidatorInterface
             foreach ($attributes as $attribute) {
                 $validatedValue = new ValidatedValue($value, $path, isInitialized: true);
 
-                $violations->merge($this->validateValue($validatedValue, $attribute->newInstance()));
+                $violations->merge($this->validateItem($validatedValue, $attribute->newInstance()));
             }
 
             $properties = $reflection->getProperties();
@@ -156,17 +127,51 @@ final readonly class Validator implements ValidatorInterface
                     $isPropertyInitialized = $property->isInitialized($value);
                     $propertyValue = $isPropertyInitialized ? $property->getValue($value) : null;
 
-                    $validatedValue = new ValidatedValue(
-                        $propertyValue,
-                        path: $errorPath,
-                        isInitialized: $isPropertyInitialized,
-                    );
+                    $validatedValue = new ValidatedValue($propertyValue, $errorPath, $isPropertyInitialized);
 
-                    $violations->merge($this->validateValue($validatedValue, $attribute->newInstance(), $errorPath));
+                    $violations->merge($this->validateItem($validatedValue, $attribute->newInstance(), $errorPath));
                 }
             }
         }
 
         return $violations;
+    }
+
+    /**
+     * @throws NotFoundExceptionInterface
+     * @throws ContainerExceptionInterface
+     * @throws ReflectionException
+     */
+    private function validateItem(
+        ValidatedValueInterface $validatedValue,
+        array|ConstraintInterface $constraints,
+        ?string $errorPathPrefix = null,
+    ): ViolationListInterface {
+        $violationList = new ViolationList();
+
+        $constraints = is_array($constraints) ? $constraints : [$constraints];
+        foreach ($constraints as $constraint) {
+            $handler = $this->instantiator->instantiate($constraint->getHandler());
+
+            $handler->validate($validatedValue, $constraint);
+
+            $errors = $handler->getViolations();
+
+            if ($handler::class === CascadeValidator::class) {
+                if (!$validatedValue->isInitialized()) {
+                    return new ViolationList();
+                }
+
+                $errors = $this->validateCollection(
+                    $validatedValue->getValue(),
+                    constraints: [],
+                    errorPathPrefix: $errorPathPrefix,
+                );
+            }
+
+            $violationList->merge($errors);
+        }
+
+        return $violationList;
     }
 }

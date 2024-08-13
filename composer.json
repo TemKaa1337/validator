@@ -2,6 +2,7 @@
     "name": "temkaa/simple-validator",
     "description": "A simple validator implementation",
     "type": "library",
+    "keywords": ["validation","validator"],
     "license": "MIT",
     "autoload": {
         "psr-4": {

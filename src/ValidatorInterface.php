@@ -13,7 +13,7 @@ use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
 interface ValidatorInterface
 {
     /**
-     * @param iterable|object                                $values
+     * @param iterable<object>|object                        $values
      * @param ConstraintInterface[]|ConstraintInterface|null $constraints
      *
      * @return ViolationListInterface
