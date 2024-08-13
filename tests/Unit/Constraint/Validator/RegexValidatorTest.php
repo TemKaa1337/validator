@@ -12,6 +12,7 @@ use Stringable;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\Validator\RegexValidator;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
 
 final class RegexValidatorTest extends AbstractValidatorTestCase
@@ -22,7 +23,17 @@ final class RegexValidatorTest extends AbstractValidatorTestCase
             #[Assert\Regex(pattern: '/123/', message: 'validation exception')]
             public string $test = 'asd';
         };
-        yield [$object, 'asd', 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 'asd',
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $stringable = new class implements Stringable {
             public function __toString(): string
@@ -37,7 +48,17 @@ final class RegexValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $stringable, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => $stringable,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -120,16 +141,16 @@ final class RegexValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
+    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
         $this->assertCount($expectedErrorsCount, $errors);
 
-        foreach ($errors as $error) {
-            self::assertEquals('validation exception', $error->getMessage());
-            self::assertNull($error->getPath());
-            self::assertEquals($invalidValue, $error->getInvalidValue());
+        foreach ($errors as $index => $error) {
+            self::assertEquals($invalidValuesInfo[$index]['message'], $error->getMessage());
+            self::assertEquals($invalidValuesInfo[$index]['path'], $error->getPath());
+            self::assertEquals($invalidValuesInfo[$index]['invalidValue'], $error->getInvalidValue());
         }
     }
 
@@ -159,7 +180,10 @@ final class RegexValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new RegexValidator())->validate(new stdClass(), new Assert\Count(expected: 1, message: ''));
+        (new RegexValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Count(expected: 1, message: ''),
+        );
     }
 
     /**

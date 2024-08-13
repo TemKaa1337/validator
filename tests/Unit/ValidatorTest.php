@@ -15,6 +15,7 @@ use Temkaa\SimpleValidator\AbstractConstraintValidator;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\Violation;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
 use Temkaa\SimpleValidator\Validator;
 use Tests\Unit\Stub\CustomClass;
 use Tests\Unit\Stub\CustomConstraint;
@@ -73,8 +74,9 @@ final class ValidatorTest extends TestCase
         };
 
         $constraintValidator = new class extends AbstractConstraintValidator {
-            public function validate(mixed $value, ConstraintInterface $constraint): void
+            public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
             {
+                $value = $value->getValue();
                 if (!is_object($value)) {
                     throw new UnexpectedTypeException(actualType: gettype($value), expectedType: 'object');
                 }

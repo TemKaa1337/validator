@@ -12,6 +12,7 @@ use stdClass;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\Validator\CountValidator;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
 
 final class CountValidatorTest extends AbstractValidatorTestCase
@@ -22,13 +23,33 @@ final class CountValidatorTest extends AbstractValidatorTestCase
             #[Assert\Count(expected: 1, message: 'validation exception')]
             public array $test = ['test1', 'test2'];
         };
-        yield [$object, ['test1', 'test2'], 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => ['test1', 'test2'],
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Count(expected: 1, message: 'validation exception')]
             public array $test = [];
         };
-        yield [$object, [], 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => [],
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $countable = new class implements Countable {
             public function count(): int
@@ -43,7 +64,17 @@ final class CountValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $countable, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => $countable,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -122,16 +153,16 @@ final class CountValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
+    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
         $this->assertCount($expectedErrorsCount, $errors);
 
-        foreach ($errors as $error) {
-            self::assertEquals('validation exception', $error->getMessage());
-            self::assertNull($error->getPath());
-            self::assertEquals($invalidValue, $error->getInvalidValue());
+        foreach ($errors as $index => $error) {
+            self::assertEquals($invalidValuesInfo[$index]['message'], $error->getMessage());
+            self::assertEquals($invalidValuesInfo[$index]['path'], $error->getPath());
+            self::assertEquals($invalidValuesInfo[$index]['invalidValue'], $error->getInvalidValue());
         }
     }
 
@@ -161,7 +192,10 @@ final class CountValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new CountValidator())->validate(new stdClass(), new Assert\Positive(message: ''));
+        (new CountValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Positive(message: ''),
+        );
     }
 
     /**

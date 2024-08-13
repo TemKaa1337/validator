@@ -7,6 +7,7 @@ namespace Tests\Unit\Stub;
 use Temkaa\SimpleValidator\AbstractConstraintValidator;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\Violation;
+use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
 
 final class CustomValidator extends AbstractConstraintValidator
 {
@@ -19,10 +20,10 @@ final class CustomValidator extends AbstractConstraintValidator
     /**
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function validate(mixed $value, ConstraintInterface $constraint): void
+    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
     {
         $this->addViolation(
-            new Violation($value, $this->class->getMessage(), path: null),
+            new Violation($value->getValue(), $this->class->getMessage(), path: null),
         );
     }
 }

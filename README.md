@@ -1,11 +1,9 @@
 ### This is a simple Validator implementation.
 
 ## Here are some todos:
-1. implement cascade assert on properties
-2. implement constraint violations correct error path
-3. refactoring
-4. add cascade to readme
-5. add container clarification to readme
+1. implement constraint violations correct error path
+2. refactoring
+3. add container clarification to readme
 
 ## This package provides the following constraints:
 ### \#[Count]

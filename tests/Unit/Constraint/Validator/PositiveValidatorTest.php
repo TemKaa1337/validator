@@ -11,6 +11,7 @@ use stdClass;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\Validator\PositiveValidator;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
 
 final class PositiveValidatorTest extends AbstractValidatorTestCase
@@ -21,25 +22,65 @@ final class PositiveValidatorTest extends AbstractValidatorTestCase
             #[Assert\Positive(message: 'validation exception')]
             public int $test = 0;
         };
-        yield [$object, 0, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 0,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Positive(message: 'validation exception')]
             public int $test = -1;
         };
-        yield [$object, -1, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => -1,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Positive(message: 'validation exception')]
             public float $test = 0.0;
         };
-        yield [$object, 0.0, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 0.0,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Positive(message: 'validation exception')]
             public float $test = -0.1;
         };
-        yield [$object, -0.1, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => -0.1,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -116,16 +157,16 @@ final class PositiveValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
+    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
         $this->assertCount($expectedErrorsCount, $errors);
 
-        foreach ($errors as $error) {
-            self::assertEquals('validation exception', $error->getMessage());
-            self::assertNull($error->getPath());
-            self::assertEquals($invalidValue, $error->getInvalidValue());
+        foreach ($errors as $index => $error) {
+            self::assertEquals($invalidValuesInfo[$index]['message'], $error->getMessage());
+            self::assertEquals($invalidValuesInfo[$index]['path'], $error->getPath());
+            self::assertEquals($invalidValuesInfo[$index]['invalidValue'], $error->getInvalidValue());
         }
     }
 
@@ -155,7 +196,10 @@ final class PositiveValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new PositiveValidator())->validate(new stdClass(), new Assert\Count(expected: 1, message: ''));
+        (new PositiveValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Count(expected: 1, message: ''),
+        );
     }
 
     /**

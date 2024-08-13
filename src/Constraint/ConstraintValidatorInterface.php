@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Temkaa\SimpleValidator\Constraint;
 
+use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
+
 interface ConstraintValidatorInterface
 {
     public function getViolations(): ViolationListInterface;
 
-    public function validate(mixed $value, ConstraintInterface $constraint): void;
+    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void;
 }

@@ -11,6 +11,7 @@ use stdClass;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\Validator\InitializedValidator;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
 
 final class InitializedValidatorTest extends AbstractValidatorTestCase
@@ -21,25 +22,65 @@ final class InitializedValidatorTest extends AbstractValidatorTestCase
             #[Assert\Initialized(message: 'validation exception')]
             public int $test;
         };
-        yield [$object, '', 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => '',
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Initialized(message: 'validation exception')]
             public string $test;
         };
-        yield [$object, '', 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => '',
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Initialized(message: 'validation exception')]
             public bool $test;
         };
-        yield [$object, '', 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => '',
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Initialized(message: 'validation exception')]
             public object $test;
         };
-        yield [$object, '', 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => '',
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -103,16 +144,16 @@ final class InitializedValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
+    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
         $this->assertCount($expectedErrorsCount, $errors);
 
-        foreach ($errors as $error) {
-            self::assertEquals('validation exception', $error->getMessage());
-            self::assertNull($error->getPath());
-            self::assertEquals($invalidValue, $error->getInvalidValue());
+        foreach ($errors as $index => $error) {
+            self::assertEquals($invalidValuesInfo[$index]['message'], $error->getMessage());
+            self::assertEquals($invalidValuesInfo[$index]['path'], $error->getPath());
+            self::assertEquals($invalidValuesInfo[$index]['invalidValue'], $error->getInvalidValue());
         }
     }
 
@@ -142,7 +183,10 @@ final class InitializedValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new InitializedValidator())->validate(new stdClass(), new Assert\Positive(message: ''));
+        (new InitializedValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Positive(message: ''),
+        );
     }
 
     /**
@@ -153,9 +197,6 @@ final class InitializedValidatorTest extends AbstractValidatorTestCase
         string $exception,
         string $exceptionMessage,
     ): void {
-        $this->expectException($exception);
-        $this->expectExceptionMessage($exceptionMessage);
-
-        (new InitializedValidator())->validate($value, new Assert\Initialized(message: ''));
+        $this->markTestSkipped(message: 'This validator does not have unsupported values.');
     }
 }

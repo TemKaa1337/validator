@@ -40,7 +40,7 @@ final readonly class Instantiator
     {
         // TODO: refactor validator
         // TODO: add CORRECT invalid paths to constraint violations
-        // TODO: handle container exceptions and convert to custom ones
+        // TODO: write about null if property is not initialized in readme
         if ($this->container?->has($className)) {
             return $this->container->get($className);
         }

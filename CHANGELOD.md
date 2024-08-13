@@ -4,6 +4,8 @@
 - Added ability to pass `ContainerInterface` instance to [Validator](/src/Validator.php) in order to write your
 own constraints that require additional objects;
 - Performed small refactoring;
+- Fixed null path of invalid values;
+- Added [ValidatedValueInterface](src/Model/ValidatedValueInterface.php);
 - Added auto-release tag drafter.
 
 ### v0.0.1

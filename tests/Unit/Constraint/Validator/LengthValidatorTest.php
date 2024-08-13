@@ -15,6 +15,7 @@ use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\Validator\LengthValidator;
 use Temkaa\SimpleValidator\Exception\InvalidConstraintConfigurationException;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
 use Throwable;
 
@@ -26,25 +27,65 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
             #[Assert\Length(minLength: 1, minMessage: 'validation exception')]
             public string $test = '';
         };
-        yield [$object, '', 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => '',
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Length(maxLength: 1, maxMessage: 'validation exception')]
             public string $test = 'aa';
         };
-        yield [$object, 'aa', 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 'aa',
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Length(minLength: 1, minMessage: 'validation exception')]
             public array $test = [];
         };
-        yield [$object, [], 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => [],
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Length(maxLength: 1, maxMessage: 'validation exception')]
             public array $test = ['test', 'test'];
         };
-        yield [$object, ['test', 'test'], 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => ['test', 'test'],
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $countable = new class implements Countable {
             public function count(): int
@@ -59,7 +100,17 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $countable, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => $countable,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $countable = new class implements Countable {
             public function count(): int
@@ -74,7 +125,17 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $countable, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => $countable,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $stringable = new class implements Stringable {
             public function __toString(): string
@@ -89,7 +150,17 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $stringable, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => $stringable,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -303,16 +374,16 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
+    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
         $this->assertCount($expectedErrorsCount, $errors);
 
-        foreach ($errors as $error) {
-            self::assertEquals('validation exception', $error->getMessage());
-            self::assertNull($error->getPath());
-            self::assertEquals($invalidValue, $error->getInvalidValue());
+        foreach ($errors as $index => $error) {
+            self::assertEquals($invalidValuesInfo[$index]['message'], $error->getMessage());
+            self::assertEquals($invalidValuesInfo[$index]['path'], $error->getPath());
+            self::assertEquals($invalidValuesInfo[$index]['invalidValue'], $error->getInvalidValue());
         }
     }
 
@@ -342,7 +413,10 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new LengthValidator())->validate(new stdClass(), new Assert\Positive(message: ''));
+        (new LengthValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Positive(message: ''),
+        );
     }
 
     /**
@@ -362,7 +436,10 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
         $this->expectException($exception);
         $this->expectExceptionMessage($exceptionMessage);
 
-        (new LengthValidator())->validate(new stdClass(), $constraint);
+        (new LengthValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            $constraint,
+        );
     }
 
     /**

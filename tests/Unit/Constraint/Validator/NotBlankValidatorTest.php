@@ -13,6 +13,7 @@ use Stringable;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\Validator\NotBlankValidator;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
 
 final class NotBlankValidatorTest extends AbstractValidatorTestCase
@@ -23,20 +24,50 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
             #[Assert\NotBlank(message: 'validation exception')]
             public string $test = '';
         };
-        yield [$object, '', 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => '',
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\NotBlank(message: 'validation exception')]
             public array $test = [];
         };
-        yield [$object, [], 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => [],
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             /** @noinspection PropertyInitializationFlawsInspection */
             #[Assert\NotBlank(message: 'validation exception')]
             public null $test = null;
         };
-        yield [$object, null, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => null,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $countable = new class implements Countable {
             public function count(): int
@@ -51,7 +82,17 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $countable, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => $countable,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $stringable = new class implements Stringable {
             public function __toString(): string
@@ -66,7 +107,17 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
             ) {
             }
         };
-        yield [$object, $stringable, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => $stringable,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -178,16 +229,16 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
+    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
         $this->assertCount($expectedErrorsCount, $errors);
 
-        foreach ($errors as $error) {
-            self::assertEquals('validation exception', $error->getMessage());
-            self::assertNull($error->getPath());
-            self::assertEquals($invalidValue, $error->getInvalidValue());
+        foreach ($errors as $index => $error) {
+            self::assertEquals($invalidValuesInfo[$index]['message'], $error->getMessage());
+            self::assertEquals($invalidValuesInfo[$index]['path'], $error->getPath());
+            self::assertEquals($invalidValuesInfo[$index]['invalidValue'], $error->getInvalidValue());
         }
     }
 
@@ -217,7 +268,10 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new NotBlankValidator())->validate(new stdClass(), new Assert\Count(expected: 1, message: ''));
+        (new NotBlankValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Count(expected: 1, message: ''),
+        );
     }
 
     /**

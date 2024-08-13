@@ -12,7 +12,9 @@ use stdClass;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\Validator\CascadeValidator;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
+use Tests\Unit\Stub\Cascade\ParentClass;
 
 /**
  * @SuppressWarnings(PHPMD.ExcessivePublicCount)
@@ -57,19 +59,20 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
         yield [
             $object,
             [
-                'invalidValues' => [
-                    [
-                        'message'      => 'validation exception 1',
-                        'invalidValue' => ['test1'],
-                    ],
-                    [
-                        'message'      => 'validation exception 2',
-                        'invalidValue' => 10,
-                    ],
-                    [
-                        'message'      => 'validation exception 3',
-                        'invalidValue' => -1,
-                    ],
+                [
+                    'message'      => 'validation exception 1',
+                    'invalidValue' => ['test1'],
+                    'path'         => $object::class.'.test',
+                ],
+                [
+                    'message'      => 'validation exception 2',
+                    'invalidValue' => 10,
+                    'path'         => $object::class.'.arrayOfObjects[0].int',
+                ],
+                [
+                    'message'      => 'validation exception 3',
+                    'invalidValue' => -1,
+                    'path'         => $object::class.'.arrayOfObjects[0].arrayOfObjects[0].int',
                 ],
             ],
             3,
@@ -104,7 +107,17 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
                 $this->iterableOfObjects = new ArrayIterator([$class1]);
             }
         };
-        yield [$object, -1, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception 3',
+                    'invalidValue' => -1,
+                    'path'         => $object::class.'.iterableOfObjects[0].arrayOfObjects[0].int',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Count(expected: 1, message: 'validation exception 1')]
@@ -135,7 +148,17 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
                 $this->object = $class1;
             }
         };
-        yield [$object, -1, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception 3',
+                    'invalidValue' => -1,
+                    'path'         => $object::class.'.object.object.int',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -301,24 +324,29 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
      * @throws NotFoundExceptionInterface
      * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue, int $expectedErrorsCount): void
+    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);
 
         $this->assertCount($expectedErrorsCount, $errors);
 
-        if (is_array($invalidValue) && array_key_exists('invalidValues', $invalidValue)) {
-            foreach ($errors as $index => $error) {
-                self::assertEquals($invalidValue['invalidValues'][$index]['message'], $error->getMessage());
-                self::assertNull($error->getPath());
-                self::assertEquals($invalidValue['invalidValues'][$index]['invalidValue'], $error->getInvalidValue());
-            }
-        } else {
-            $errors = iterator_to_array($errors);
-            self::assertEquals('validation exception 3', $errors[0]->getMessage());
-            self::assertNull($errors[0]->getPath());
-            self::assertEquals($invalidValue, $errors[0]->getInvalidValue());
+        foreach ($errors as $index => $error) {
+            self::assertEquals($invalidValuesInfo[$index]['message'], $error->getMessage());
+            self::assertEquals($invalidValuesInfo[$index]['path'], $error->getPath());
+            self::assertEquals($invalidValuesInfo[$index]['invalidValue'], $error->getInvalidValue());
         }
+        // if (is_array($invalidValue) && array_key_exists('invalidValues', $invalidValue)) {
+        //     foreach ($errors as $index => $error) {
+        //         self::assertEquals($invalidValue['invalidValues'][$index]['message'], $error->getMessage());
+        //         self::assertNull($error->getPath());
+        //         self::assertEquals($invalidValue['invalidValues'][$index]['invalidValue'], $error->getInvalidValue());
+        //     }
+        // } else {
+        //     $errors = iterator_to_array($errors);
+        //     self::assertEquals('validation exception 3', $errors[0]->getMessage());
+        //     self::assertNull($errors[0]->getPath());
+        //     self::assertEquals($invalidValue, $errors[0]->getInvalidValue());
+        // }
     }
 
     /**
@@ -328,43 +356,54 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
      */
     public function testInvalidWithAppliedAsConstraint(): void
     {
-        $object = new class {
-            #[Assert\Count(expected: 1, message: 'validation exception')]
-            public array $test = ['test1'];
+        // $object = new class {
+        //     #[Assert\Count(expected: 1, message: 'validation exception')]
+        //     public array $test = ['test1'];
+        //
+        //     #[Assert\Cascade]
+        //     public array $arrayOfObjects;
+        //
+        //     public function __construct()
+        //     {
+        //         $class1 = new class {
+        //             #[Assert\Positive(message: 'validation exception')]
+        //             public int $int = 10;
+        //
+        //             #[Assert\Cascade]
+        //             public array $arrayOfObjects;
+        //
+        //             public function __construct()
+        //             {
+        //                 $class1 = new class {
+        //                     #[Assert\Positive(message: 'validation exception 3')]
+        //                     public int $int = -1;
+        //                 };
+        //
+        //                 $this->arrayOfObjects = [$class1];
+        //             }
+        //         };
+        //         $this->arrayOfObjects = [$class1];
+        //     }
+        // };
 
-            #[Assert\Cascade]
-            public array $arrayOfObjects;
-
-            public function __construct()
-            {
-                $class1 = new class {
-                    #[Assert\Positive(message: 'validation exception')]
-                    public int $int = 10;
-
-                    #[Assert\Cascade]
-                    public array $arrayOfObjects;
-
-                    public function __construct()
-                    {
-                        $class1 = new class {
-                            #[Assert\Positive(message: 'validation exception 3')]
-                            public int $int = -1;
-                        };
-
-                        $this->arrayOfObjects = [$class1];
-                    }
-                };
-                $this->arrayOfObjects = [$class1];
-            }
-        };
+        $object = new ParentClass();
 
         $errors = (new Validator())->validate($object, constraints: new Assert\Cascade());
-        $this->assertCount(1, $errors);
+        $this->assertCount(3, $errors);
 
         $error = iterator_to_array($errors)[0];
-        self::assertEquals('validation exception 3', $error->getMessage());
-        self::assertNull($error->getPath());
+
+        self::assertEquals('ChildClass3 error', $error->getMessage());
+        self::assertEquals(ParentClass::class.'.class1.arrayOfObjects[0].iterableOfObjects[0].int', $error->getPath());
         self::assertEquals(-1, $error->getInvalidValue());
+
+        self::assertEquals('ChildClass2 error', $error->getMessage());
+        self::assertEquals(ParentClass::class.'.class1.arrayOfObjects[0].array', $error->getPath());
+        self::assertEquals([1], $error->getInvalidValue());
+
+        self::assertEquals('ChildClass1 error', $error->getMessage());
+        self::assertEquals(ParentClass::class.'.class1.float', $error->getPath());
+        self::assertEquals(1.01, $error->getInvalidValue());
     }
 
     /**
@@ -435,7 +474,10 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new CascadeValidator((new Validator())))->validate(new stdClass(), new Assert\Positive(message: ''));
+        (new CascadeValidator((new Validator())))->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Positive(message: ''),
+        );
     }
 
     /**
