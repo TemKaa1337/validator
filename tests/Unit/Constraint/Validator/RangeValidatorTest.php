@@ -4,15 +4,23 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Constraint\Validator;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
+use ReflectionException;
 use stdClass;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\Validator\RangeValidator;
-use Temkaa\SimpleValidator\Constraint\ViolationInterface;
 use Temkaa\SimpleValidator\Exception\InvalidConstraintConfigurationException;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
+use Throwable;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 final class RangeValidatorTest extends AbstractValidatorTestCase
 {
     public static function getDataForInvalidTest(): iterable
@@ -21,37 +29,97 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
             #[Assert\Range(min: 1, minMessage: 'validation exception')]
             public int $test = 0;
         };
-        yield [$object, 0];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 0,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Range(max: 1, maxMessage: 'validation exception')]
             public int $test = 2;
         };
-        yield [$object, 2];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 2,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Range(min: 1, max: 2, minMessage: 'validation exception', maxMessage: 'validation exception')]
             public int $test = 3;
         };
-        yield [$object, 3];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 3,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Range(min: 1.1, minMessage: 'validation exception')]
             public float $test = 1.09;
         };
-        yield [$object, 1.09];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 1.09,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Range(max: 1.1, maxMessage: 'validation exception')]
             public float $test = 1.11;
         };
-        yield [$object, 1.11];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 1.11,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Range(min: 1.1, max: 2.2, minMessage: 'validation exception', maxMessage: 'validation exception')]
             public float $test = 2.21;
         };
-        yield [$object, 2.21];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 2.21,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -157,6 +225,7 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
         ];
 
         $object = new class {
+            /** @noinspection PropertyInitializationFlawsInspection */
             #[Assert\Range(min: 1, minMessage: '')]
             public null $test = null;
         };
@@ -172,28 +241,16 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
     }
 
     /**
-     * @dataProvider getDataForInvalidTest
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue): void
-    {
-        $errors = (new Validator())->validate($value);
-
-        $this->assertCount(1, $errors);
-        /** @var ViolationInterface $error */
-        foreach ($errors as $error) {
-            self::assertEquals('validation exception', $error->getMessage());
-            self::assertNull($error->getPath());
-            self::assertEquals($invalidValue, $error->getInvalidValue());
-        }
-    }
-
-    /**
-     * @dataProvider getDataForValidTest
-     */
+    #[DataProvider('getDataForValidTest')]
     public function testValid(object $value): void
     {
         $errors = (new Validator())->validate($value);
 
+        /** @psalm-suppress TypeDoesNotContainType */
         $this->assertEmpty($errors);
     }
 
@@ -208,12 +265,20 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new RangeValidator())->validate(new stdClass(), new Assert\Count(expected: 1, message: ''));
+        (new RangeValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Count(expected: 1, message: ''),
+        );
     }
 
     /**
-     * @dataProvider getDataForValidateWithInvalidConstraintSettingsTest
+     * @param class-string<Throwable> $exception
+     * @param string                  $exceptionMessage
+     * @param ConstraintInterface     $constraint
+     *
+     * @return void
      */
+    #[DataProvider('getDataForValidateWithInvalidConstraintSettingsTest')]
     public function testValidateWithInvalidConstraintSettings(
         string $exception,
         string $exceptionMessage,
@@ -222,12 +287,18 @@ final class RangeValidatorTest extends AbstractValidatorTestCase
         $this->expectException($exception);
         $this->expectExceptionMessage($exceptionMessage);
 
-        (new RangeValidator())->validate(new stdClass(), $constraint);
+        (new RangeValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            $constraint,
+        );
     }
 
     /**
-     * @dataProvider getDataForValidateWithUnsupportedValueTypeTest
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
+    #[DataProvider('getDataForValidateWithUnsupportedValueTypeTest')]
     public function testValidateWithUnsupportedValueType(
         object $value,
         string $exception,

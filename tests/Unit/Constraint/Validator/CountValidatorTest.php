@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Tests\Unit\Constraint\Validator;
 
 use Countable;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
+use ReflectionException;
 use stdClass;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\Validator\CountValidator;
-use Temkaa\SimpleValidator\Constraint\ViolationInterface;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
 
 final class CountValidatorTest extends AbstractValidatorTestCase
@@ -20,13 +24,33 @@ final class CountValidatorTest extends AbstractValidatorTestCase
             #[Assert\Count(expected: 1, message: 'validation exception')]
             public array $test = ['test1', 'test2'];
         };
-        yield [$object, ['test1', 'test2']];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => ['test1', 'test2'],
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Count(expected: 1, message: 'validation exception')]
             public array $test = [];
         };
-        yield [$object, []];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => [],
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $countable = new class implements Countable {
             public function count(): int
@@ -34,14 +58,24 @@ final class CountValidatorTest extends AbstractValidatorTestCase
                 return 2;
             }
         };
-        $object = new class ($countable) {
+        $object = new readonly class ($countable) {
             public function __construct(
                 #[Assert\Count(expected: 1, message: 'validation exception')]
-                public readonly Countable $test,
+                public Countable $test,
             ) {
             }
         };
-        yield [$object, $countable];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => $countable,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -58,10 +92,10 @@ final class CountValidatorTest extends AbstractValidatorTestCase
                 return 1;
             }
         };
-        $object = new class ($countable) {
+        $object = new readonly class ($countable) {
             public function __construct(
                 #[Assert\Count(expected: 1, message: 'validation exception')]
-                public readonly Countable $test,
+                public Countable $test,
             ) {
             }
         };
@@ -114,28 +148,16 @@ final class CountValidatorTest extends AbstractValidatorTestCase
     }
 
     /**
-     * @dataProvider getDataForInvalidTest
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue): void
-    {
-        $errors = (new Validator())->validate($value);
-
-        $this->assertCount(1, $errors);
-        /** @var ViolationInterface $error */
-        foreach ($errors as $error) {
-            self::assertEquals('validation exception', $error->getMessage());
-            self::assertNull($error->getPath());
-            self::assertEquals($invalidValue, $error->getInvalidValue());
-        }
-    }
-
-    /**
-     * @dataProvider getDataForValidTest
-     */
+    #[DataProvider('getDataForValidTest')]
     public function testValid(object $value): void
     {
         $errors = (new Validator())->validate($value);
 
+        /** @psalm-suppress TypeDoesNotContainType */
         $this->assertEmpty($errors);
     }
 
@@ -150,12 +172,18 @@ final class CountValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new CountValidator())->validate(new stdClass(), new Assert\Positive(message: ''));
+        (new CountValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Positive(message: ''),
+        );
     }
 
     /**
-     * @dataProvider getDataForValidateWithUnsupportedValueTypeTest
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
+    #[DataProvider('getDataForValidateWithUnsupportedValueTypeTest')]
     public function testValidateWithUnsupportedValueType(
         object $value,
         string $exception,

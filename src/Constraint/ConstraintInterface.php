@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Temkaa\SimpleValidator\Constraint;
 
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
-
 interface ConstraintInterface
 {
-    public function getHandler(): AbstractConstraintValidator;
+    /**
+     * @psalm-api
+     *
+     * @template T of ConstraintValidatorInterface
+     *
+     * @return class-string<T>
+     */
+    public function getHandler(): string;
 }

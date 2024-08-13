@@ -13,5 +13,5 @@ interface ViolationInterface
 
     public function getMessage(): string;
 
-    public function getPath(): ?string;
+    public function getPath(): string;
 }

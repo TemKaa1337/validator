@@ -12,6 +12,7 @@ use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\Violation;
 use Temkaa\SimpleValidator\Exception\InvalidConstraintConfigurationException;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
 
 /**
  * @SuppressWarnings(PHPMD.CyclomaticComplexity)
@@ -19,8 +20,19 @@ use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
  */
 final class LengthValidator extends AbstractConstraintValidator
 {
-    public function validate(mixed $value, ConstraintInterface $constraint): void
+    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
     {
+        if (!$constraint instanceof Length) {
+            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Length::class);
+        }
+
+        if (!$value->isInitialized()) {
+            return;
+        }
+
+        $errorPath = $value->getPath();
+        $value = $value->getValue();
+
         $this->validateConstraint($constraint);
         $this->validateValue($value);
 
@@ -30,18 +42,20 @@ final class LengthValidator extends AbstractConstraintValidator
 
         /** @psalm-suppress NoInterfaceProperties */
         if ($constraint->minLength !== null && $constraint->minLength > $length) {
-            $this->addViolation(new Violation(invalidValue: $value, message: $constraint->minMessage, path: null));
+            /** @psalm-suppress PossiblyNullArgument */
+            $this->addViolation(
+                new Violation(invalidValue: $value, message: $constraint->minMessage, path: $errorPath),
+            );
         } else if ($constraint->maxLength !== null && $constraint->maxLength < $length) {
-            $this->addViolation(new Violation(invalidValue: $value, message: $constraint->maxMessage, path: null));
+            /** @psalm-suppress PossiblyNullArgument */
+            $this->addViolation(
+                new Violation(invalidValue: $value, message: $constraint->maxMessage, path: $errorPath),
+            );
         }
     }
 
-    private function validateConstraint(ConstraintInterface $constraint): void
+    private function validateConstraint(Length $constraint): void
     {
-        if (!$constraint instanceof Length) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Length::class);
-        }
-
         if ($constraint->minLength === null && $constraint->maxLength === null) {
             throw new InvalidConstraintConfigurationException(
                 'Length constraint must have one of "minLength" or "maxLength" argument set.',
@@ -93,6 +107,7 @@ final class LengthValidator extends AbstractConstraintValidator
 
     private function validateValue(mixed $value): void
     {
+        /** @noinspection PhpConditionCheckedByNextConditionInspection */
         if (!is_string($value) && !is_array($value) && !$value instanceof Countable && !$value instanceof Stringable) {
             throw new UnexpectedTypeException(
                 actualType: gettype($value),

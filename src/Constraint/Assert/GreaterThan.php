@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Temkaa\SimpleValidator\Constraint\Assert;
 
 use Attribute;
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\Validator\GreaterThanValidator;
 
@@ -22,8 +21,11 @@ final readonly class GreaterThan implements ConstraintInterface
     ) {
     }
 
-    public function getHandler(): AbstractConstraintValidator
+    /**
+     * @inheritDoc
+     */
+    public function getHandler(): string
     {
-        return new GreaterThanValidator();
+        return GreaterThanValidator::class;
     }
 }

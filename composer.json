@@ -2,6 +2,7 @@
     "name": "temkaa/simple-validator",
     "description": "A simple validator implementation",
     "type": "library",
+    "keywords": ["validation","validator"],
     "license": "MIT",
     "autoload": {
         "psr-4": {
@@ -16,11 +17,12 @@
         }
     ],
     "require": {
-        "php": ">=8.2"
+        "php": "8.3.*",
+        "psr/container": "^2.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5",
         "phpmd/phpmd": "^2.15",
-        "vimeo/psalm": "5.19"
+        "vimeo/psalm": "^5.25"
     }
 }

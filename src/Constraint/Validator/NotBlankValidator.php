@@ -11,45 +11,53 @@ use Temkaa\SimpleValidator\Constraint\Assert\NotBlank;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\Violation;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
 
 final class NotBlankValidator extends AbstractConstraintValidator
 {
-    public function validate(mixed $value, ConstraintInterface $constraint): void
-    {
-        $this->performBasicValidation($value, $constraint);
-
-        if ($value === null) {
-            /** @psalm-suppress NoInterfaceProperties */
-            if (!$constraint->allowNull) {
-                $this->addViolation(new Violation(invalidValue: $value, message: $constraint->message, path: null));
-            }
-
-            return;
-        }
-
-        $length = match (true) {
-            is_string($value) || $value instanceof Stringable => mb_strlen((string) $value),
-            default                                           => count($value),
-        };
-
-        if ($length === 0) {
-            /** @psalm-suppress NoInterfaceProperties */
-            $this->addViolation(new Violation(invalidValue: $value, message: $constraint->message, path: null));
-        }
-    }
-
-    private function performBasicValidation(mixed $value, ConstraintInterface $constraint): void
+    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
     {
         if (!$constraint instanceof NotBlank) {
             throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: NotBlank::class);
         }
 
+        $errorPath = $value->getPath();
+        if (!$value->isInitialized()) {
+            $this->addViolation(new Violation(invalidValue: $value, message: $constraint->message, path: $errorPath));
+
+            return;
+        }
+
+        $value = $value->getValue();
+
+        $this->validateType($value);
+
+        if ($value === null) {
+            if (!$constraint->allowNull) {
+                $this->addViolation(
+                    new Violation(invalidValue: $value, message: $constraint->message, path: $errorPath),
+                );
+            }
+
+            return;
+        }
+
+        $length = is_string($value) || $value instanceof Stringable ? mb_strlen((string) $value) : count($value);
+
+        if ($length === 0) {
+            $this->addViolation(new Violation(invalidValue: $value, message: $constraint->message, path: $errorPath));
+        }
+    }
+
+    private function validateType(mixed $value): void
+    {
+        /** @noinspection PhpConditionCheckedByNextConditionInspection */
         if (
             $value !== null
             && !is_string($value)
             && !is_array($value)
-            && !$value instanceof Stringable
             && !$value instanceof Countable
+            && !$value instanceof Stringable
         ) {
             throw new UnexpectedTypeException(
                 actualType: gettype($value),

@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Constraint\Validator;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
+use ReflectionException;
 use stdClass;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\Validator\LessThanValidator;
-use Temkaa\SimpleValidator\Constraint\ViolationInterface;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
 
 final class LessThanValidatorTest extends AbstractValidatorTestCase
@@ -19,25 +23,65 @@ final class LessThanValidatorTest extends AbstractValidatorTestCase
             #[Assert\LessThan(threshold: 1, message: 'validation exception', allowEquality: true)]
             public int $test = 2;
         };
-        yield [$object, 2];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 2,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\LessThan(threshold: 1, message: 'validation exception')]
             public int $test = 1;
         };
-        yield [$object, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 1,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\LessThan(threshold: 1, message: 'validation exception')]
             public float $test = 1.0;
         };
-        yield [$object, 1.0];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 1.0,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\LessThan(threshold: 1, message: 'validation exception')]
             public float $test = 2;
         };
-        yield [$object, 2];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 2,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -98,6 +142,7 @@ final class LessThanValidatorTest extends AbstractValidatorTestCase
         ];
 
         $object = new class {
+            /** @noinspection PropertyInitializationFlawsInspection */
             #[Assert\LessThan(threshold: 10, message: '')]
             public null $test = null;
         };
@@ -113,28 +158,16 @@ final class LessThanValidatorTest extends AbstractValidatorTestCase
     }
 
     /**
-     * @dataProvider getDataForInvalidTest
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue): void
-    {
-        $errors = (new Validator())->validate($value);
-
-        $this->assertCount(1, $errors);
-        /** @var ViolationInterface $error */
-        foreach ($errors as $error) {
-            self::assertEquals('validation exception', $error->getMessage());
-            self::assertNull($error->getPath());
-            self::assertEquals($invalidValue, $error->getInvalidValue());
-        }
-    }
-
-    /**
-     * @dataProvider getDataForValidTest
-     */
+    #[DataProvider('getDataForValidTest')]
     public function testValid(object $value): void
     {
         $errors = (new Validator())->validate($value);
 
+        /** @psalm-suppress TypeDoesNotContainType */
         $this->assertEmpty($errors);
     }
 
@@ -149,12 +182,18 @@ final class LessThanValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new LessThanValidator())->validate(new stdClass(), new Assert\Positive(message: ''));
+        (new LessThanValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Positive(message: ''),
+        );
     }
 
     /**
-     * @dataProvider getDataForValidateWithUnsupportedValueTypeTest
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
+    #[DataProvider('getDataForValidateWithUnsupportedValueTypeTest')]
     public function testValidateWithUnsupportedValueType(
         object $value,
         string $exception,

@@ -18,11 +18,6 @@ interface ViolationListInterface extends Countable, IteratorAggregate
     public function add(ViolationInterface $violation): void;
 
     /**
-     * @return ViolationInterface[]
-     */
-    public function getAll(): array;
-
-    /**
      * @param ViolationListInterface<ViolationInterface> $list
      */
     public function merge(ViolationListInterface $list): void;

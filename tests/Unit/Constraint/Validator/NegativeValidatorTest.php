@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Constraint\Validator;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
+use ReflectionException;
 use stdClass;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\Validator\NegativeValidator;
-use Temkaa\SimpleValidator\Constraint\ViolationInterface;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
 
 final class NegativeValidatorTest extends AbstractValidatorTestCase
@@ -19,25 +23,65 @@ final class NegativeValidatorTest extends AbstractValidatorTestCase
             #[Assert\Negative(message: 'validation exception')]
             public int $test = 0;
         };
-        yield [$object, 0];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 0,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Negative(message: 'validation exception')]
             public int $test = 1;
         };
-        yield [$object, 1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 1,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Negative(message: 'validation exception')]
             public float $test = 0.0;
         };
-        yield [$object, 0.0];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 0.0,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\Negative(message: 'validation exception')]
             public float $test = 0.1;
         };
-        yield [$object, 0.1];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => 0.1,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -92,6 +136,7 @@ final class NegativeValidatorTest extends AbstractValidatorTestCase
         ];
 
         $object = new class {
+            /** @noinspection PropertyInitializationFlawsInspection */
             #[Assert\Negative(message: '')]
             public null $test = null;
         };
@@ -107,28 +152,16 @@ final class NegativeValidatorTest extends AbstractValidatorTestCase
     }
 
     /**
-     * @dataProvider getDataForInvalidTest
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue): void
-    {
-        $errors = (new Validator())->validate($value);
-
-        $this->assertCount(1, $errors);
-        /** @var ViolationInterface $error */
-        foreach ($errors as $error) {
-            self::assertEquals('validation exception', $error->getMessage());
-            self::assertNull($error->getPath());
-            self::assertEquals($invalidValue, $error->getInvalidValue());
-        }
-    }
-
-    /**
-     * @dataProvider getDataForValidTest
-     */
+    #[DataProvider('getDataForValidTest')]
     public function testValid(object $value): void
     {
         $errors = (new Validator())->validate($value);
 
+        /** @psalm-suppress TypeDoesNotContainType */
         $this->assertEmpty($errors);
     }
 
@@ -143,12 +176,18 @@ final class NegativeValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new NegativeValidator())->validate(new stdClass(), new Assert\Count(expected: 1, message: ''));
+        (new NegativeValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Count(expected: 1, message: ''),
+        );
     }
 
     /**
-     * @dataProvider getDataForValidateWithUnsupportedValueTypeTest
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
+    #[DataProvider('getDataForValidateWithUnsupportedValueTypeTest')]
     public function testValidateWithUnsupportedValueType(
         object $value,
         string $exception,

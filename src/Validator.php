@@ -4,22 +4,49 @@ declare(strict_types=1);
 
 namespace Temkaa\SimpleValidator;
 
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
+use ReflectionAttribute;
 use ReflectionClass;
-use Temkaa\SimpleValidator\Constraint\Assert\Initialized;
-use Temkaa\SimpleValidator\Constraint\Assert\NotBlank;
+use ReflectionException;
 use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
+use Temkaa\SimpleValidator\Constraint\Validator\CascadeValidator;
 use Temkaa\SimpleValidator\Constraint\ViolationList;
 use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
-use Temkaa\SimpleValidator\Exception\UnsupportedActionException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
+use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
+use Temkaa\SimpleValidator\Service\Instantiator;
+use Temkaa\SimpleValidator\Utils\InputArgumentValidator;
 
 /**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ *
  * @psalm-api
  */
-final class Validator implements ValidatorInterface
+final readonly class Validator implements ValidatorInterface
 {
-    public function validate(object $value, array|ConstraintInterface|null $constraints = null): ViolationListInterface
-    {
-        $this->validateConstraints($constraints);
+    private Instantiator $instantiator;
+
+    public function __construct(
+        ?ContainerInterface $container = null,
+    ) {
+        $this->instantiator = new Instantiator($container);
+    }
+
+    /**
+     * @inheritDoc
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
+     */
+    public function validate(
+        iterable|object $values,
+        array|ConstraintInterface|null $constraints = null,
+    ): ViolationListInterface {
+        InputArgumentValidator::validateValues($values);
+        InputArgumentValidator::validateConstraints($constraints);
 
         $constraints = match (true) {
             $constraints === null  => [],
@@ -27,102 +54,124 @@ final class Validator implements ValidatorInterface
             default                => [$constraints]
         };
 
-        return $this->validateValue($value, $constraints);
+        return $this->validateCollection($values, $constraints);
     }
 
-    private function validateConstraints(array|ConstraintInterface|null $constraints): void
-    {
-        if (!is_array($constraints)) {
-            return;
-        }
-
-        foreach ($constraints as $constraint) {
-            if (!$constraint instanceof ConstraintInterface) {
-                throw new UnsupportedActionException(
-                    sprintf(
-                        'Cannot validate value with constraint of type "%s" as it does not implement "%s".',
-                        gettype($constraint),
-                        ConstraintInterface::class,
-                    ),
-                );
-            }
-        }
+    private function getErrorPathPrefix(
+        ?string $errorPathPrefix,
+        bool $isIterable,
+        int $listIndex,
+        string $className,
+    ): string {
+        /** @psalm-suppress RiskyTruthyFalsyComparison */
+        return match (true) {
+            $errorPathPrefix && $isIterable   => sprintf('%s[%s]', $errorPathPrefix, $listIndex),
+            $errorPathPrefix && !$isIterable  => $errorPathPrefix,
+            !$errorPathPrefix && $isIterable  => "[$listIndex]",
+            !$errorPathPrefix && !$isIterable => $className,
+        };
     }
 
     /**
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
-     *
-     * @param object                $value
-     * @param ConstraintInterface[] $constraints
+     * @param iterable<object>|object $values
+     * @param ConstraintInterface[]   $constraints
+     * @param ?string                 $errorPathPrefix
      *
      * @return ViolationListInterface
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
-    private function validateValue(object $value, array $constraints): ViolationListInterface
-    {
+    private function validateCollection(
+        iterable|object $values,
+        array $constraints,
+        ?string $errorPathPrefix = null,
+    ): ViolationListInterface {
         $violations = new ViolationList();
 
-        $r = new ReflectionClass($value);
-        if ($r->isInternal()) {
-            return $violations;
-        }
+        $isIterable = is_iterable($values);
+        $values = $isIterable ? $values : [$values];
 
         if ($constraints) {
-            foreach ($constraints as $constraint) {
-                $handler = $constraint->getHandler();
-                $handler->validate($value, $constraint);
+            foreach ($values as $value) {
+                $validatedValue = new ValidatedValue($value, path: $value::class, isInitialized: true);
 
-                $violations->merge($handler->getViolations());
+                $violations->merge($this->validateItem($validatedValue, $constraints));
             }
 
             return $violations;
         }
 
-        $attributes = $r->getAttributes();
-        foreach ($attributes as $attribute) {
-            $constraint = $attribute->newInstance();
-            if ($constraint instanceof ConstraintInterface) {
-                $handler = $constraint->getHandler();
-                $handler->validate($value, $constraint);
+        foreach ($values as $index => $value) {
+            $reflection = new ReflectionClass($value);
 
-                $violations->merge($handler->getViolations());
-            }
-        }
+            $path = $this->getErrorPathPrefix($errorPathPrefix, $isIterable, $index, $value::class);
 
-        $properties = $r->getProperties();
-        foreach ($properties as $property) {
-            $attributes = $property->getAttributes();
-
+            $attributes = $reflection->getAttributes(
+                ConstraintInterface::class,
+                ReflectionAttribute::IS_INSTANCEOF,
+            );
             foreach ($attributes as $attribute) {
-                $constraint = $attribute->newInstance();
+                $validatedValue = new ValidatedValue($value, $path, isInitialized: true);
 
-                if ($constraint instanceof ConstraintInterface) {
-                    $handler = $constraint->getHandler();
-                    /** @psalm-suppress PossiblyInvalidArgument */
+                $violations->merge($this->validateItem($validatedValue, $attribute->newInstance()));
+            }
+
+            $properties = $reflection->getProperties();
+            foreach ($properties as $property) {
+                $attributes = $property->getAttributes(ConstraintInterface::class, ReflectionAttribute::IS_INSTANCEOF);
+                $errorPath = sprintf('%s.%s', $path, $property->getName());
+
+                foreach ($attributes as $attribute) {
                     $isPropertyInitialized = $property->isInitialized($value);
+                    $propertyValue = $isPropertyInitialized ? $property->getValue($value) : null;
 
-                    if ($constraint instanceof Initialized || $constraint instanceof NotBlank) {
-                        /** @psalm-suppress PossiblyInvalidArgument */
-                        $value = match (true) {
-                            $constraint instanceof NotBlank => $isPropertyInitialized
-                                ? $property->getValue($value)
-                                : '',
-                            default                         => $isPropertyInitialized,
-                        };
+                    $validatedValue = new ValidatedValue($propertyValue, $errorPath, $isPropertyInitialized);
 
-                        $handler->validate(
-                            $value,
-                            $constraint,
-                        );
-                    } else if ($isPropertyInitialized) {
-                        /** @psalm-suppress PossiblyInvalidArgument */
-                        $handler->validate($property->getValue($value), $constraint);
-                    }
-
-                    $violations->merge($handler->getViolations());
+                    $violations->merge($this->validateItem($validatedValue, $attribute->newInstance(), $errorPath));
                 }
             }
         }
 
         return $violations;
+    }
+
+    /**
+     * @throws NotFoundExceptionInterface
+     * @throws ContainerExceptionInterface
+     * @throws ReflectionException
+     */
+    private function validateItem(
+        ValidatedValueInterface $validatedValue,
+        array|ConstraintInterface $constraints,
+        ?string $errorPathPrefix = null,
+    ): ViolationListInterface {
+        $violationList = new ViolationList();
+
+        $constraints = is_array($constraints) ? $constraints : [$constraints];
+        foreach ($constraints as $constraint) {
+            $handler = $this->instantiator->instantiate($constraint->getHandler());
+
+            $handler->validate($validatedValue, $constraint);
+
+            $errors = $handler->getViolations();
+
+            if ($handler::class === CascadeValidator::class) {
+                if (!$validatedValue->isInitialized()) {
+                    return new ViolationList();
+                }
+
+                $errors = $this->validateCollection(
+                    $validatedValue->getValue(),
+                    constraints: [],
+                    errorPathPrefix: $errorPathPrefix,
+                );
+            }
+
+            $violationList->merge($errors);
+        }
+
+        return $violationList;
     }
 }

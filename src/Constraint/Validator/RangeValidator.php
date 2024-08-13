@@ -10,6 +10,7 @@ use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
 use Temkaa\SimpleValidator\Constraint\Violation;
 use Temkaa\SimpleValidator\Exception\InvalidConstraintConfigurationException;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
 
 /**
  * @SuppressWarnings(PHPMD.CyclomaticComplexity)
@@ -17,26 +18,39 @@ use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
  */
 final class RangeValidator extends AbstractConstraintValidator
 {
-    public function validate(mixed $value, ConstraintInterface $constraint): void
+    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
     {
+        if (!$constraint instanceof Range) {
+            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Range::class);
+        }
+
+        if (!$value->isInitialized()) {
+            return;
+        }
+
+        $errorPath = $value->getPath();
+        $value = $value->getValue();
+
         $this->validateConstraint($constraint);
         $this->validateValue($value);
 
         $value = (float) $value;
         /** @psalm-suppress NoInterfaceProperties */
         if ($constraint->min !== null && $constraint->min > $value) {
-            $this->addViolation(new Violation(invalidValue: $value, message: $constraint->minMessage, path: null));
+            /** @psalm-suppress PossiblyNullArgument */
+            $this->addViolation(
+                new Violation(invalidValue: $value, message: $constraint->minMessage, path: $errorPath),
+            );
         } else if ($constraint->max !== null && $constraint->max < $value) {
-            $this->addViolation(new Violation(invalidValue: $value, message: $constraint->maxMessage, path: null));
+            /** @psalm-suppress PossiblyNullArgument */
+            $this->addViolation(
+                new Violation(invalidValue: $value, message: $constraint->maxMessage, path: $errorPath),
+            );
         }
     }
 
-    private function validateConstraint(ConstraintInterface $constraint): void
+    private function validateConstraint(Range $constraint): void
     {
-        if (!$constraint instanceof Range) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Range::class);
-        }
-
         if ($constraint->min === null && $constraint->max === null) {
             throw new InvalidConstraintConfigurationException(
                 'Length constraint must have one of "min" or "max" argument set.',

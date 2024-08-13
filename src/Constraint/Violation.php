@@ -9,7 +9,7 @@ final readonly class Violation implements ViolationInterface
     public function __construct(
         private mixed $invalidValue,
         private string $message,
-        private ?string $path,
+        private string $path,
     ) {
     }
 
@@ -23,7 +23,7 @@ final readonly class Violation implements ViolationInterface
         return $this->message;
     }
 
-    public function getPath(): ?string
+    public function getPath(): string
     {
         return $this->path;
     }

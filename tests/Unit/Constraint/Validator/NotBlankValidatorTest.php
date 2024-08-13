@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Tests\Unit\Constraint\Validator;
 
 use Countable;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
+use ReflectionException;
 use stdClass;
 use Stringable;
 use Temkaa\SimpleValidator\Constraint\Assert;
 use Temkaa\SimpleValidator\Constraint\Validator\NotBlankValidator;
-use Temkaa\SimpleValidator\Constraint\ViolationInterface;
 use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
+use Temkaa\SimpleValidator\Model\ValidatedValue;
 use Temkaa\SimpleValidator\Validator;
 
 final class NotBlankValidatorTest extends AbstractValidatorTestCase
@@ -21,19 +25,50 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
             #[Assert\NotBlank(message: 'validation exception')]
             public string $test = '';
         };
-        yield [$object, ''];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => '',
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\NotBlank(message: 'validation exception')]
             public array $test = [];
         };
-        yield [$object, []];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => [],
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
+            /** @noinspection PropertyInitializationFlawsInspection */
             #[Assert\NotBlank(message: 'validation exception')]
             public null $test = null;
         };
-        yield [$object, null];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => null,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $countable = new class implements Countable {
             public function count(): int
@@ -41,14 +76,24 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
                 return 0;
             }
         };
-        $object = new class ($countable) {
+        $object = new readonly class ($countable) {
             public function __construct(
                 #[Assert\NotBlank(message: 'validation exception')]
-                public readonly Countable $test,
+                public Countable $test,
             ) {
             }
         };
-        yield [$object, $countable];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => $countable,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $stringable = new class implements Stringable {
             public function __toString(): string
@@ -56,14 +101,24 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
                 return '';
             }
         };
-        $object = new class ($stringable) {
+        $object = new readonly class ($stringable) {
             public function __construct(
                 #[Assert\NotBlank(message: 'validation exception')]
-                public readonly Stringable $test,
+                public Stringable $test,
             ) {
             }
         };
-        yield [$object, $stringable];
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => $stringable,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
     }
 
     public static function getDataForValidTest(): iterable
@@ -98,10 +153,10 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
                 return 1;
             }
         };
-        $object = new class ($countable) {
+        $object = new readonly class ($countable) {
             public function __construct(
                 #[Assert\NotBlank(message: 'validation exception')]
-                public readonly Countable $test,
+                public Countable $test,
             ) {
             }
         };
@@ -113,10 +168,10 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
                 return 'test';
             }
         };
-        $object = new class ($stringable) {
+        $object = new readonly class ($stringable) {
             public function __construct(
                 #[Assert\NotBlank(message: 'validation exception')]
-                public readonly Stringable $test,
+                public Stringable $test,
             ) {
             }
         };
@@ -169,28 +224,16 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
     }
 
     /**
-     * @dataProvider getDataForInvalidTest
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
-    public function testInvalid(object $value, mixed $invalidValue): void
-    {
-        $errors = (new Validator())->validate($value);
-
-        $this->assertCount(1, $errors);
-        /** @var ViolationInterface $error */
-        foreach ($errors as $error) {
-            self::assertEquals('validation exception', $error->getMessage());
-            self::assertNull($error->getPath());
-            self::assertEquals($invalidValue, $error->getInvalidValue());
-        }
-    }
-
-    /**
-     * @dataProvider getDataForValidTest
-     */
+    #[DataProvider('getDataForValidTest')]
     public function testValid(object $value): void
     {
         $errors = (new Validator())->validate($value);
 
+        /** @psalm-suppress TypeDoesNotContainType */
         $this->assertEmpty($errors);
     }
 
@@ -205,12 +248,18 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
             ),
         );
 
-        (new NotBlankValidator())->validate(new stdClass(), new Assert\Count(expected: 1, message: ''));
+        (new NotBlankValidator())->validate(
+            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
+            new Assert\Count(expected: 1, message: ''),
+        );
     }
 
     /**
-     * @dataProvider getDataForValidateWithUnsupportedValueTypeTest
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ReflectionException
      */
+    #[DataProvider('getDataForValidateWithUnsupportedValueTypeTest')]
     public function testValidateWithUnsupportedValueType(
         object $value,
         string $exception,
