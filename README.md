@@ -215,6 +215,3 @@ $validator = new Validator($container);
 `null` will be passed as value. In these cases it is recommended to add `NotBlank` or `Initialized` validators with
 combination with your custom validators;
 2. All validators except `NotBlank` and `Initialized` do not trigger validation errors on properties which are uninitialized.
-
-### Here are some todos which are needed to be done:
-1. Refactor validator class
