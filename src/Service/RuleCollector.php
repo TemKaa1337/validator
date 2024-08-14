@@ -68,7 +68,6 @@ final class RuleCollector
                 ];
             }
 
-            // TODO: check if in tests there will be less assertions if override from parent class
             $rules = array_merge($rules, $this->collectFromProperties($reflection, $errorPath, $value));
 
             ++$index;
@@ -134,25 +133,25 @@ final class RuleCollector
                 $constraint = $attribute->newInstance();
                 $validatedValue = new ValidatedValue($propertyValue, $errorPath, $isPropertyInitialized);
 
-                if ($constraint instanceof Cascade) {
-                    $handler = new ($constraint->getHandler());
-                    $handler->validate($validatedValue, $constraint);
-
-                    if ($isPropertyInitialized) {
-                        /** @psalm-suppress MixedArgument, PossiblyNullArgument */
-                        $rules = array_merge(
-                            $rules,
-                            $this->collect($propertyValue, errorPathPrefix: $errorPath),
-                        );
-                    }
+                if (!$constraint instanceof Cascade) {
+                    $rules[] = [
+                        new ValidatedValue($propertyValue, $errorPath, $isPropertyInitialized),
+                        [$constraint],
+                    ];
 
                     continue;
                 }
 
-                $rules[] = [
-                    new ValidatedValue($propertyValue, $errorPath, $isPropertyInitialized),
-                    [$constraint],
-                ];
+                $handler = new ($constraint->getHandler());
+                $handler->validate($validatedValue, $constraint);
+
+                if ($isPropertyInitialized) {
+                    /** @psalm-suppress MixedArgument, PossiblyNullArgument */
+                    $rules = array_merge(
+                        $rules,
+                        $this->collect($propertyValue, errorPathPrefix: $errorPath),
+                    );
+                }
             }
         }
 

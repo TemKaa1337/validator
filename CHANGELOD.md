@@ -1,6 +1,7 @@
 ### v0.0.4
 ##### Features:
 - Set psalm level to 1;
+- Small refactoring;
 - Changed logic of validation by collecting all constraints first and then validate.
 
 ### v0.0.3
