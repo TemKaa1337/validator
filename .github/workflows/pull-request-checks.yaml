@@ -28,5 +28,8 @@ jobs:
             - name: Run Psalm tests
               run: ./vendor/bin/psalm -c psalm.xml
 
-            - name: Run test suite
+            - name: Run Unit tests
               run: ./vendor/bin/phpunit --testsuite units
+
+            - name: Run Mutation tests
+              run: ./vendor/bin/infection --threads=2 --logger-github

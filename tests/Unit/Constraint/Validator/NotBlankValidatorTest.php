@@ -36,6 +36,21 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
             ],
             1,
         ];
+        $object = new class {
+            #[Assert\NotBlank(message: 'validation exception')]
+            public string $test;
+        };
+        yield [
+            $object,
+            [
+                [
+                    'message'      => 'validation exception',
+                    'invalidValue' => null,
+                    'path'         => $object::class.'.test',
+                ],
+            ],
+            1,
+        ];
 
         $object = new class {
             #[Assert\NotBlank(message: 'validation exception')]

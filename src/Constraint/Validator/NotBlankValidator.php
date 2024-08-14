@@ -23,7 +23,9 @@ final class NotBlankValidator extends AbstractConstraintValidator
 
         $errorPath = $value->getPath();
         if (!$value->isInitialized()) {
-            $this->addViolation(new Violation(invalidValue: $value, message: $constraint->message, path: $errorPath));
+            $this->addViolation(
+                new Violation(invalidValue: $value->getValue(), message: $constraint->message, path: $errorPath),
+            );
 
             return;
         }
