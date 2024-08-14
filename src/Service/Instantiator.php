@@ -25,6 +25,8 @@ final readonly class Instantiator
     }
 
     /**
+     * @psalm-suppress MixedInferredReturnType
+     *
      * @template T of ConstraintValidatorInterface
      * @param class-string<T> $className
      *
@@ -37,6 +39,7 @@ final readonly class Instantiator
     public function instantiate(string $className): object
     {
         if ($this->container?->has($className)) {
+            /** @psalm-suppress MixedReturnStatement */
             return $this->container->get($className);
         }
 

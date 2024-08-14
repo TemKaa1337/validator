@@ -1,4 +1,4 @@
-### This is a simple Validator implementation.
+### A PSR Container compatible Validator implementation.
 
 ### Installation
 ```
