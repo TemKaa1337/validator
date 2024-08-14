@@ -165,10 +165,10 @@ final class RuleCollector
         string $className,
     ): string {
         return match (true) {
-            $errorPathPrefix && $isIterable   => sprintf('%s[%s]', $errorPathPrefix, $listIndex),
-            $errorPathPrefix && !$isIterable  => $errorPathPrefix,
-            !$errorPathPrefix && $isIterable  => "[$listIndex]",
-            !$errorPathPrefix && !$isIterable => $className,
+            $errorPathPrefix && $isIterable  => sprintf('%s[%s]', $errorPathPrefix, $listIndex),
+            $errorPathPrefix && !$isIterable => $errorPathPrefix,
+            !$errorPathPrefix && $isIterable => "[$listIndex]",
+            default                          => $className,
         };
     }
 }
