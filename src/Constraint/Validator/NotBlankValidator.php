@@ -42,6 +42,7 @@ final class NotBlankValidator extends AbstractConstraintValidator
             return;
         }
 
+        /** @psalm-suppress MixedArgument */
         $length = is_string($value) || $value instanceof Stringable ? mb_strlen((string) $value) : count($value);
 
         if ($length === 0) {

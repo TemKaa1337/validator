@@ -17,6 +17,7 @@ use Temkaa\SimpleValidator\Validator;
 
 final class NegativeValidatorTest extends AbstractValidatorTestCase
 {
+    /** @noinspection SenselessProxyMethodInspection */
     public static function getDataForInvalidTest(): iterable
     {
         $object = new class {
@@ -149,6 +150,13 @@ final class NegativeValidatorTest extends AbstractValidatorTestCase
                 'NULL',
             ),
         ];
+    }
+
+    /** @noinspection SenselessProxyMethodInspection */
+    #[DataProvider('getDataForInvalidTest')]
+    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
+    {
+        parent::testInvalid($value, $invalidValuesInfo, $expectedErrorsCount);
     }
 
     /**

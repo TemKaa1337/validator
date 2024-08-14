@@ -36,6 +36,7 @@ final class LengthValidator extends AbstractConstraintValidator
         $this->validateConstraint($constraint);
         $this->validateValue($value);
 
+        /** @psalm-suppress MixedArgument */
         $length = is_string($value) || $value instanceof Stringable
             ? mb_strlen((string) $value)
             : count($value);

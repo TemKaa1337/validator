@@ -19,6 +19,7 @@ use Temkaa\SimpleValidator\Validator;
 use Tests\Unit\Stub\Cascade\ParentClass;
 
 /**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  * @SuppressWarnings(PHPMD.ExcessivePublicCount)
  * @SuppressWarnings(PHPMD.TooManyFields)
  */
@@ -301,6 +302,13 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
             UnsupportedActionException::class,
             'Cannot validate iterable<string> as the only supported types are object|iterable<object>.',
         ];
+    }
+
+    /** @noinspection SenselessProxyMethodInspection */
+    #[DataProvider('getDataForInvalidTest')]
+    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
+    {
+        parent::testInvalid($value, $invalidValuesInfo, $expectedErrorsCount);
     }
 
     /**
