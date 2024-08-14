@@ -7,4 +7,4 @@
 /psalm.xml export-ignore
 /Makefile export-ignore
 /.github export-ignore
-/.phpunit.xml.dist
+/.phpunit.xml.dist export-ignore
