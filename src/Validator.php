@@ -16,8 +16,6 @@ use Temkaa\SimpleValidator\Service\RuleCollector;
 use Temkaa\SimpleValidator\Utils\InputArgumentValidator;
 
 /**
- * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
- *
  * @psalm-api
  */
 final readonly class Validator implements ValidatorInterface
