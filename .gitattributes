@@ -8,3 +8,4 @@
 /Makefile export-ignore
 /.github export-ignore
 /.phpunit.xml.dist export-ignore
+/infection.json.dist export-ignore

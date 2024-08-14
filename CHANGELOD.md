@@ -1,3 +1,7 @@
+### v0.0.5
+##### Features:
+- Added infection to project.
+
 ### v0.0.4
 ##### Features:
 - Set psalm level to 1;
