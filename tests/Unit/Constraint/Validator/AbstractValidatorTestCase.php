@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Constraint\Validator;
 
-use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -15,21 +14,12 @@ use Throwable;
 abstract class AbstractValidatorTestCase extends TestCase
 {
     /**
+     * @psalm-suppress MixedArrayAccess, MixedArrayOffset
+     *
      * @throws ContainerExceptionInterface
      * @throws ReflectionException
      * @throws NotFoundExceptionInterface
      */
-    #[DataProviderExternal(CascadeValidatorTest::class, 'getDataForInvalidTest')]
-    #[DataProviderExternal(CountValidatorTest::class, 'getDataForInvalidTest')]
-    #[DataProviderExternal(GreaterThanValidatorTest::class, 'getDataForInvalidTest')]
-    #[DataProviderExternal(InitializedValidatorTest::class, 'getDataForInvalidTest')]
-    #[DataProviderExternal(LengthValidatorTest::class, 'getDataForInvalidTest')]
-    #[DataProviderExternal(LessThanValidatorTest::class, 'getDataForInvalidTest')]
-    #[DataProviderExternal(NegativeValidatorTest::class, 'getDataForInvalidTest')]
-    #[DataProviderExternal(NotBlankValidatorTest::class, 'getDataForInvalidTest')]
-    #[DataProviderExternal(PositiveValidatorTest::class, 'getDataForInvalidTest')]
-    #[DataProviderExternal(RangeValidatorTest::class, 'getDataForInvalidTest')]
-    #[DataProviderExternal(RegexValidatorTest::class, 'getDataForInvalidTest')]
     public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
     {
         $errors = (new Validator())->validate($value);

@@ -100,7 +100,6 @@ final class RuleCollector
             );
 
             if ($cascadeConstraintExists) {
-                // TODO: optimizeh
                 /** @psalm-suppress MixedArgument */
                 $rules = array_merge($rules, $this->collect($value));
             } else {
@@ -140,7 +139,6 @@ final class RuleCollector
                     $handler->validate($validatedValue, $constraint);
 
                     if ($isPropertyInitialized) {
-                        // TODO: update changelog
                         /** @psalm-suppress MixedArgument, PossiblyNullArgument */
                         $rules = array_merge(
                             $rules,

@@ -19,6 +19,7 @@ final class InitializedValidatorTest extends AbstractValidatorTestCase
 {
     public static function getDataForInvalidTest(): iterable
     {
+        /** @psalm-suppress MissingConstructor */
         $object = new class {
             #[Assert\Initialized(message: 'validation exception')]
             public int $test;
@@ -35,6 +36,7 @@ final class InitializedValidatorTest extends AbstractValidatorTestCase
             1,
         ];
 
+        /** @psalm-suppress MissingConstructor */
         $object = new class {
             #[Assert\Initialized(message: 'validation exception')]
             public string $test;
@@ -103,6 +105,13 @@ final class InitializedValidatorTest extends AbstractValidatorTestCase
             public bool $test = false;
         };
         yield [$object];
+    }
+
+    /** @noinspection SenselessProxyMethodInspection */
+    #[DataProvider('getDataForInvalidTest')]
+    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
+    {
+        parent::testInvalid($value, $invalidValuesInfo, $expectedErrorsCount);
     }
 
     /**

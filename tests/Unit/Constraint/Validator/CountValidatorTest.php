@@ -147,6 +147,13 @@ final class CountValidatorTest extends AbstractValidatorTestCase
         ];
     }
 
+    /** @noinspection SenselessProxyMethodInspection */
+    #[DataProvider('getDataForInvalidTest')]
+    public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
+    {
+        parent::testInvalid($value, $invalidValuesInfo, $expectedErrorsCount);
+    }
+
     /**
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
