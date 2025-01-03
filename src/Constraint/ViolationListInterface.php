@@ -2,23 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint;
+namespace Temkaa\Validator\Constraint;
 
 use Countable;
 use IteratorAggregate;
 
 /**
- * @template T of ViolationInterface
- * @template-extends IteratorAggregate<ViolationInterface>
+ * @api
  *
- * @psalm-api
+ * @template TKey of int
+ * @template TValue of ViolationInterface
+ * @template-extends IteratorAggregate<TKey, TValue>
  */
 interface ViolationListInterface extends Countable, IteratorAggregate
 {
     public function add(ViolationInterface $violation): void;
 
     /**
-     * @param ViolationListInterface<ViolationInterface> $list
+     * @param ViolationListInterface<TKey, TValue> $list
      */
     public function merge(ViolationListInterface $list): void;
 }

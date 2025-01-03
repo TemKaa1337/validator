@@ -2,19 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint\Assert;
+namespace Temkaa\Validator\Constraint\Assert;
 
 use Attribute;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Validator\RegexValidator;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\Validator\RegexValidator;
 
+/**
+ * @api
+ *
+ * @template-implements ConstraintInterface<RegexValidator>
+ */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class Regex implements ConstraintInterface
 {
     /**
      * @param non-empty-string $pattern
-     *
-     * @psalm-api
      */
     public function __construct(
         public string $pattern,
@@ -22,9 +25,6 @@ final readonly class Regex implements ConstraintInterface
     ) {
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getHandler(): string
     {
         return RegexValidator::class;

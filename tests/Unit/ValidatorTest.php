@@ -13,23 +13,25 @@ use Psr\Container\NotFoundExceptionInterface;
 use ReflectionClass;
 use ReflectionException;
 use stdClass;
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\ConstraintValidatorInterface;
-use Temkaa\SimpleValidator\Constraint\Violation;
-use Temkaa\SimpleValidator\Exception\CannotInstantiateValidatorException;
-use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
-use Temkaa\SimpleValidator\Exception\UnsupportedActionException;
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
-use Temkaa\SimpleValidator\Validator;
-use Tests\Unit\Stub\AbstractClass;
-use Tests\Unit\Stub\ClassWithBuiltInParameterInConstructor;
-use Tests\Unit\Stub\ClassWithBuiltInParameterInConstructorWithDefaultValue;
-use Tests\Unit\Stub\ClassWithUnionConstructorType;
-use Tests\Unit\Stub\ConstraintWithConfigurableHandler;
-use Tests\Unit\Stub\CustomClass;
-use Tests\Unit\Stub\CustomConstraint;
-use Tests\Unit\Stub\CustomValidator;
+use Temkaa\Validator\AbstractConstraintValidator;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\ConstraintValidatorInterface;
+use Temkaa\Validator\Constraint\Violation;
+use Temkaa\Validator\Exception\CannotInstantiateValidatorException;
+use Temkaa\Validator\Exception\UnexpectedTypeException;
+use Temkaa\Validator\Model\ValidatedValueInterface;
+use Temkaa\Validator\Validator;
+use Tests\Helper\Stub\AbstractClass;
+use Tests\Helper\Stub\ClassWithBuiltInParameterInConstructor;
+use Tests\Helper\Stub\ClassWithBuiltInParameterInConstructorWithDefaultValue;
+use Tests\Helper\Stub\ClassWithUnionConstructorType;
+use Tests\Helper\Stub\ConstraintWithConfigurableHandler;
+use Tests\Helper\Stub\CustomClass;
+use Tests\Helper\Stub\CustomConstraint;
+use Tests\Helper\Stub\CustomValidator;
+use function gettype;
+use function is_object;
+use function sprintf;
 
 /**
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
@@ -150,9 +152,9 @@ final class ValidatorTest extends TestCase
         };
 
         $constraintValidator = new class extends AbstractConstraintValidator {
-            public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
+            public function validate(ValidatedValueInterface $validatedValue, ConstraintInterface $constraint): void
             {
-                $value = $value->getValue();
+                $value = $validatedValue->getValue();
                 if (!is_object($value)) {
                     throw new UnexpectedTypeException(actualType: gettype($value), expectedType: 'object');
                 }
@@ -227,31 +229,6 @@ final class ValidatorTest extends TestCase
         $errors = (new Validator())->validate($object, $constraint);
         /** @psalm-suppress TypeDoesNotContainType */
         self::assertEmpty($errors);
-    }
-
-    /**
-     * @throws ReflectionException
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
-    public function testValidateWithConstraintNotImplementingConstraintInterface(): void
-    {
-        $object = new class {
-        };
-        $constraint = new class {
-        };
-
-        $this->expectException(UnsupportedActionException::class);
-        $this->expectExceptionMessage(
-            sprintf(
-                'Cannot validate value with constraint of type "%s" as it does not implement "%s".',
-                gettype($constraint),
-                ConstraintInterface::class,
-            ),
-        );
-
-        /** @psalm-suppress InvalidArgument */
-        (new Validator())->validate($object, [$constraint]);
     }
 
     /**

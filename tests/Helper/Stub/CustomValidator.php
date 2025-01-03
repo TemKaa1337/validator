@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Stub;
+namespace Tests\Helper\Stub;
 
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Violation;
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
+use Temkaa\Validator\AbstractConstraintValidator;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\Violation;
+use Temkaa\Validator\Model\ValidatedValueInterface;
 
 final class CustomValidator extends AbstractConstraintValidator
 {

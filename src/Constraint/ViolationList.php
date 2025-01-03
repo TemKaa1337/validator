@@ -2,26 +2,32 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint;
+namespace Temkaa\Validator\Constraint;
 
 use ArrayIterator;
 use Traversable;
+use function count;
 
 /**
- * @implements ViolationListInterface<ViolationInterface>
+ * @api
  *
- * @psalm-api
+ * @template TKey of int
+ * @template TValue of ViolationInterface
+ * @template-implements ViolationListInterface<TKey, TValue>
  */
 final class ViolationList implements ViolationListInterface
 {
     /**
-     * @param ViolationInterface[] $violations
+     * @param array<TKey, TValue> $violations
      */
     public function __construct(
         private array $violations = [],
     ) {
     }
 
+    /**
+     * @param TValue $violation
+     */
     public function add(ViolationInterface $violation): void
     {
         $this->violations[] = $violation;
@@ -33,7 +39,7 @@ final class ViolationList implements ViolationListInterface
     }
 
     /**
-     * @return Traversable<ViolationInterface>
+     * @return ArrayIterator<TKey, TValue>
      */
     public function getIterator(): Traversable
     {
@@ -41,7 +47,7 @@ final class ViolationList implements ViolationListInterface
     }
 
     /**
-     * @param ViolationListInterface<ViolationInterface> $list
+     * @param ViolationListInterface<TKey, TValue> $list
      */
     public function merge(ViolationListInterface $list): void
     {

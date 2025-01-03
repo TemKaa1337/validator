@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Stub;
+namespace Tests\Helper\Stub;
 
 use Exception;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\ConstraintValidatorInterface;
-use Temkaa\SimpleValidator\Constraint\ViolationList;
-use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\ConstraintValidatorInterface;
+use Temkaa\Validator\Constraint\ViolationList;
+use Temkaa\Validator\Constraint\ViolationListInterface;
+use Temkaa\Validator\Model\ValidatedValueInterface;
 
 final readonly class ClassWithBuiltInParameterInConstructorWithDefaultValue implements ConstraintValidatorInterface
 {

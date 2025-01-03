@@ -1,3 +1,12 @@
+### v0.0.6
+##### Features:
+- Replaced `psalm` with `phpstan`;
+- Added generics for some of the interfaces;
+- Added code coverage test;
+- Marked all classes with `@api` or `@internal` annotation.
+##### BC Breaks:
+- Changed namespace from `Temkaa\SimpleValidator` to `Temkaa\Validator`.
+
 ### v0.0.5
 ##### Features:
 - Added infection to project.

@@ -9,14 +9,10 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionException;
-use stdClass;
-use Temkaa\SimpleValidator\Constraint\Assert;
-use Temkaa\SimpleValidator\Constraint\Validator\CascadeValidator;
-use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
-use Temkaa\SimpleValidator\Exception\UnsupportedActionException;
-use Temkaa\SimpleValidator\Model\ValidatedValue;
-use Temkaa\SimpleValidator\Validator;
-use Tests\Unit\Stub\Cascade\ParentClass;
+use Temkaa\Validator\Constraint\Assert;
+use Temkaa\Validator\Exception\UnsupportedActionException;
+use Temkaa\Validator\Validator;
+use Tests\Helper\Stub\Cascade\ParentClass;
 
 /**
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
@@ -27,6 +23,8 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
 {
     /**
      * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
+     *
+     * @return iterable<array{0: object, 1: array<int, mixed>, 1: int}>
      */
     public static function getDataForInvalidTest(): iterable
     {
@@ -164,6 +162,9 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
         ];
     }
 
+    /**
+     * @return iterable<array{0: object}>
+     */
     public static function getDataForValidTest(): iterable
     {
         $object = new class {
@@ -260,6 +261,9 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
         yield [$object];
     }
 
+    /**
+     * @return iterable<array{0: object, 1: string, 1: string}>
+     */
     public static function getDataForValidateWithUnsupportedValueTypeTest(): iterable
     {
         $object = new class {
@@ -283,7 +287,6 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
         ];
 
         $object = new class {
-            /** @noinspection PropertyInitializationFlawsInspection */
             #[Assert\Cascade]
             public null $test = null;
         };
@@ -351,8 +354,7 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
     {
         $errors = (new Validator())->validate($value);
 
-        /** @psalm-suppress TypeDoesNotContainType */
-        $this->assertEmpty($errors);
+        $this->assertCount(0, $errors);
     }
 
     /**
@@ -393,25 +395,28 @@ final class CascadeValidatorTest extends AbstractValidatorTestCase
         };
 
         $errors = (new Validator())->validate($object, constraints: new Assert\Cascade());
-        /** @psalm-suppress TypeDoesNotContainType */
+
         $this->assertEmpty($errors);
     }
 
-    public function testValidateInvalidConstraint(): void
+    /**
+     * @throws ReflectionException
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    public function testValidateWithUninitializedValue(): void
     {
-        $this->expectException(UnexpectedTypeException::class);
-        $this->expectExceptionMessage(
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                Assert\Cascade::class,
-                Assert\Positive::class,
-            ),
-        );
+        $object = new class {
+            #[Assert\Count(expected: 1, message: 'validation exception')]
+            public array $test = ['test1'];
 
-        (new CascadeValidator())->validate(
-            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
-            new Assert\Positive(message: ''),
-        );
+            #[Assert\Cascade]
+            public array $value;
+        };
+
+        $errors = (new Validator())->validate($object);
+
+        $this->assertEmpty($errors);
     }
 
     /**

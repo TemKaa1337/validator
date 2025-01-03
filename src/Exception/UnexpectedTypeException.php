@@ -2,10 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Exception;
+namespace Temkaa\Validator\Exception;
 
 use InvalidArgumentException;
+use function sprintf;
 
+/**
+ * @api
+ */
 class UnexpectedTypeException extends InvalidArgumentException implements ValidatorExceptionInterface
 {
     public function __construct(string $actualType, string $expectedType)

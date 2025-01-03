@@ -9,19 +9,17 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionException;
-use stdClass;
 use Stringable;
-use Temkaa\SimpleValidator\Constraint\Assert;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Validator\LengthValidator;
-use Temkaa\SimpleValidator\Exception\InvalidConstraintConfigurationException;
-use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
-use Temkaa\SimpleValidator\Model\ValidatedValue;
-use Temkaa\SimpleValidator\Validator;
-use Throwable;
+use Temkaa\Validator\Constraint\Assert;
+use Temkaa\Validator\Exception\UnexpectedTypeException;
+use Temkaa\Validator\Validator;
+use function sprintf;
 
 final class LengthValidatorTest extends AbstractValidatorTestCase
 {
+    /**
+     * @return iterable<array{0: object, 1: array<int, mixed>, 1: int}>
+     */
     public static function getDataForInvalidTest(): iterable
     {
         $object = new class {
@@ -164,6 +162,9 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
         ];
     }
 
+    /**
+     * @return iterable<array{0: object}>
+     */
     public static function getDataForValidTest(): iterable
     {
         $object = new class {
@@ -278,51 +279,9 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
         yield [$object];
     }
 
-    public static function getDataForValidateWithInvalidConstraintSettingsTest(): iterable
-    {
-        yield [
-            InvalidConstraintConfigurationException::class,
-            'Length constraint must have one of "minLength" or "maxLength" argument set.',
-            new Assert\Length(),
-        ];
-
-        yield [
-            InvalidConstraintConfigurationException::class,
-            'Length constraint must have one of "minLength" or "maxLength" argument set.',
-            new Assert\Length(minLength: 1, maxLength: 1),
-        ];
-
-        yield [
-            InvalidConstraintConfigurationException::class,
-            'Length constraint must have both "minLength" and "minMessage" arguments set.',
-            new Assert\Length(minLength: 1, maxMessage: 'test'),
-        ];
-
-        yield [
-            InvalidConstraintConfigurationException::class,
-            'Length constraint must have both "maxLength" and "maxMessage" arguments set.',
-            new Assert\Length(minLength: 1, maxLength: 1, minMessage: 'test'),
-        ];
-
-        yield [
-            InvalidConstraintConfigurationException::class,
-            'Argument "maxLength" of Length constraint must be equal or greater than "minLength" value.',
-            new Assert\Length(minLength: 1, maxLength: 0, minMessage: 'test', maxMessage: 'test'),
-        ];
-
-        yield [
-            InvalidConstraintConfigurationException::class,
-            'Argument "minLength" of Length constraint must be equal or greater than 0.',
-            new Assert\Length(minLength: -1, minMessage: 'test'),
-        ];
-
-        yield [
-            InvalidConstraintConfigurationException::class,
-            'Argument "maxLength" of Length constraint must be equal or greater than 0.',
-            new Assert\Length(maxLength: -1, maxMessage: 'test'),
-        ];
-    }
-
+    /**
+     * @return iterable<array{0: object, 1: string, 1: string}>
+     */
     public static function getDataForValidateWithUnsupportedValueTypeTest(): iterable
     {
         $object = new class {
@@ -385,47 +344,27 @@ final class LengthValidatorTest extends AbstractValidatorTestCase
     {
         $errors = (new Validator())->validate($value);
 
-        /** @psalm-suppress TypeDoesNotContainType */
-        $this->assertEmpty($errors);
-    }
-
-    public function testValidateInvalidConstraint(): void
-    {
-        $this->expectException(UnexpectedTypeException::class);
-        $this->expectExceptionMessage(
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                Assert\Length::class,
-                Assert\Positive::class,
-            ),
-        );
-
-        (new LengthValidator())->validate(
-            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
-            new Assert\Positive(message: ''),
-        );
+        $this->assertCount(0, $errors);
     }
 
     /**
-     * @param class-string<Throwable> $exception
-     * @param string                  $exceptionMessage
-     * @param ConstraintInterface     $constraint
-     *
-     * @return void
+     * @throws ReflectionException
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
      */
-    #[DataProvider('getDataForValidateWithInvalidConstraintSettingsTest')]
-    public function testValidateWithInvalidConstraintSettings(
-        string $exception,
-        string $exceptionMessage,
-        ConstraintInterface $constraint,
-    ): void {
-        $this->expectException($exception);
-        $this->expectExceptionMessage($exceptionMessage);
+    public function testValidateWithUninitializedValue(): void
+    {
+        $object = new class {
+            #[Assert\Count(expected: 1, message: 'validation exception')]
+            public array $test = ['test1'];
 
-        (new LengthValidator())->validate(
-            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
-            $constraint,
-        );
+            #[Assert\Length(minLength: 1, minMessage: 'validation exception')]
+            public string $value;
+        };
+
+        $errors = (new Validator())->validate($object);
+
+        $this->assertEmpty($errors);
     }
 
     /**

@@ -2,33 +2,39 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator;
+namespace Temkaa\Validator;
 
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\ConstraintValidatorInterface;
-use Temkaa\SimpleValidator\Constraint\ViolationInterface;
-use Temkaa\SimpleValidator\Constraint\ViolationList;
-use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\ConstraintValidatorInterface;
+use Temkaa\Validator\Constraint\ViolationInterface;
+use Temkaa\Validator\Constraint\ViolationList;
+use Temkaa\Validator\Constraint\ViolationListInterface;
 
+/**
+ * @api
+ *
+ * @template TConstraint of ConstraintInterface
+ * @implements ConstraintValidatorInterface<TConstraint>
+ */
 abstract class AbstractConstraintValidator implements ConstraintValidatorInterface
 {
+    /**
+     * @var ViolationListInterface<int, ViolationInterface>
+     */
     private readonly ViolationListInterface $violations;
 
-    /**
-     * @psalm-api
-     */
     public function __construct()
     {
         $this->violations = new ViolationList();
     }
 
+    /**
+     * @return ViolationListInterface<int, ViolationInterface>
+     */
     public function getViolations(): ViolationListInterface
     {
         return $this->violations;
     }
-
-    abstract public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void;
 
     protected function addViolation(ViolationInterface $violation): void
     {

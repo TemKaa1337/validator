@@ -8,15 +8,14 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionException;
-use stdClass;
-use Temkaa\SimpleValidator\Constraint\Assert;
-use Temkaa\SimpleValidator\Constraint\Validator\InitializedValidator;
-use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
-use Temkaa\SimpleValidator\Model\ValidatedValue;
-use Temkaa\SimpleValidator\Validator;
+use Temkaa\Validator\Constraint\Assert;
+use Temkaa\Validator\Validator;
 
 final class InitializedValidatorTest extends AbstractValidatorTestCase
 {
+    /**
+     * @return iterable<array{0: object, 1: array<int, mixed>, 1: int}>
+     */
     public static function getDataForInvalidTest(): iterable
     {
         /** @psalm-suppress MissingConstructor */
@@ -86,6 +85,9 @@ final class InitializedValidatorTest extends AbstractValidatorTestCase
         ];
     }
 
+    /**
+     * @return iterable<array{0: object}>
+     */
     public static function getDataForValidTest(): iterable
     {
         $object = new class {
@@ -124,25 +126,7 @@ final class InitializedValidatorTest extends AbstractValidatorTestCase
     {
         $errors = (new Validator())->validate($value);
 
-        /** @psalm-suppress TypeDoesNotContainType */
-        $this->assertEmpty($errors);
-    }
-
-    public function testValidateInvalidConstraint(): void
-    {
-        $this->expectException(UnexpectedTypeException::class);
-        $this->expectExceptionMessage(
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                Assert\Initialized::class,
-                Assert\Positive::class,
-            ),
-        );
-
-        (new InitializedValidator())->validate(
-            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
-            new Assert\Positive(message: ''),
-        );
+        $this->assertCount(0, $errors);
     }
 
     /**

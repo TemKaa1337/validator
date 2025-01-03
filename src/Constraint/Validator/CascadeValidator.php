@@ -2,27 +2,41 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint\Validator;
+namespace Temkaa\Validator\Constraint\Validator;
 
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
-use Temkaa\SimpleValidator\Constraint\Assert\Cascade;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
-use Temkaa\SimpleValidator\Utils\InputArgumentValidator;
+use Temkaa\Validator\AbstractConstraintValidator;
+use Temkaa\Validator\Constraint\Assert\Cascade;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Model\ValidatedValueInterface;
+use Temkaa\Validator\Utils\InputArgumentValidator;
 
+/**
+ * @internal
+ *
+ * @extends AbstractConstraintValidator<Cascade>
+ */
 final class CascadeValidator extends AbstractConstraintValidator
 {
-    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
-    {
-        if (!$constraint instanceof Cascade) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Cascade::class);
-        }
+    private InputArgumentValidator $inputArgumentValidator;
 
-        if (!$value->isInitialized()) {
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->inputArgumentValidator = new InputArgumentValidator();
+    }
+
+    /**
+     * @param Cascade $constraint
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     */
+    public function validate(ValidatedValueInterface $validatedValue, ConstraintInterface $constraint): void
+    {
+        if (!$validatedValue->isInitialized()) {
             return;
         }
 
-        InputArgumentValidator::validateValues($value->getValue());
+        $this->inputArgumentValidator->validateValues($validatedValue->getValue());
     }
 }

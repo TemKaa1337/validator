@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Model;
+namespace Temkaa\Validator\Model;
 
+/**
+ * @api
+ */
 final readonly class ValidatedValue implements ValidatedValueInterface
 {
     public function __construct(

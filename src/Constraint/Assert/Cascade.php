@@ -2,17 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint\Assert;
+namespace Temkaa\Validator\Constraint\Assert;
 
 use Attribute;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Validator\CascadeValidator;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\Validator\CascadeValidator;
 
+/**
+ * @api
+ *
+ * @template-implements ConstraintInterface<CascadeValidator>
+ */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class Cascade implements ConstraintInterface
 {
     /**
-     * @inheritDoc
+     * @return string
      */
     public function getHandler(): string
     {

@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint;
+namespace Temkaa\Validator\Constraint;
 
+/**
+ * @api
+ */
 final readonly class Violation implements ViolationInterface
 {
     public function __construct(

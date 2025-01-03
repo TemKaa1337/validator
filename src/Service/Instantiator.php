@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Service;
+namespace Temkaa\Validator\Service;
 
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
@@ -11,8 +11,9 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
-use Temkaa\SimpleValidator\Constraint\ConstraintValidatorInterface;
-use Temkaa\SimpleValidator\Exception\CannotInstantiateValidatorException;
+use Temkaa\Validator\Constraint\ConstraintValidatorInterface;
+use Temkaa\Validator\Exception\CannotInstantiateValidatorException;
+use function sprintf;
 
 /**
  * @internal
@@ -39,7 +40,7 @@ final readonly class Instantiator
     public function instantiate(string $className): object
     {
         if ($this->container?->has($className)) {
-            /** @psalm-suppress MixedReturnStatement */
+            /** @phpstan-ignore return.type */
             return $this->container->get($className);
         }
 
@@ -140,7 +141,7 @@ final readonly class Instantiator
 
         throw new CannotInstantiateValidatorException(
             sprintf(
-                'Cannot instantiate validator "%s" with argument "%s:%s" as it does not exist in container.',
+                'Cannot instantiate validator "%s" with argument "%s:%s" as it does not exist in container and cannot be resolved.',
                 $className,
                 $parameterName,
                 $parameterType->getName(),
