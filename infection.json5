@@ -1,0 +1,20 @@
+{
+    "source": {
+        "directories": [
+            "src"
+        ]
+    },
+    "timeout": 10,
+    "logs": {
+        "text": "infection.log"
+    },
+    "mutators": {
+        "@default": true,
+        "MethodCallRemoval": {
+            ignore: [
+                "Temkaa\\Validator\\Constraint\\Validator\\CascadeValidator::__construct"
+            ]
+        }
+    },
+    "minMsi": 92
+}

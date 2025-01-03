@@ -16,6 +16,9 @@ use Temkaa\Validator\Constraint\Validator\CascadeValidator;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class Cascade implements ConstraintInterface
 {
+    /**
+     * @return string
+     */
     public function getHandler(): string
     {
         return CascadeValidator::class;

@@ -122,6 +122,9 @@ use Temkaa\Validator\Constraint\ViolationListInterface;
 use Temkaa\Validator\Model\ValidatedValueInterface;
 use Temkaa\Validator\Validator;
 
+/**
+ * @template-implements ConstraintInterface<ConstraintHandler>
+ */
 #[Attribute(Attribute::TARGET_CLASS)]
 final readonly class Constraint implements ConstraintInterface
 {
@@ -136,17 +139,23 @@ final readonly class Constraint implements ConstraintInterface
     }
 }
 
+/**
+ * @extends AbstractConstraintValidator<Constraint>
+ */
 final class ConstraintHandler extends AbstractConstraintValidator
 {
-    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
+    /**
+     * @param Constraint $constraint
+     */
+    public function validate(ValidatedValueInterface $validatedValue, ConstraintInterface $constraint): void
     {
-        if (!$constraint instanceof Constraint) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Constraint::class);
-        }
-
-        if ($value->isInitialized() && $value->getValue()->age !== 18) {
+        if ($validatedValue->isInitialized() && $validatedValue->getValue()->age !== 18) {
             $this->addViolation(
-                new Violation(invalidValue: $value->getValue(), message: $constraint->message, path: $value->getPath()),
+                new Violation(
+                    invalidValue: $validatedValue->getValue(),
+                    message: $constraint->message,
+                    path: $validatedValue->getPath()
+                ),
             );
         }
     }
@@ -154,31 +163,39 @@ final class ConstraintHandler extends AbstractConstraintValidator
 
 // OR
 
+/**
+ * @template-implements ConstraintValidatorInterface<Constraint>
+ */
 final class ConstraintHandler implements ConstraintValidatorInterface
 {
-    public function getViolations(): ViolationListInterface;
-
-    public function validate(mixed $value, ConstraintInterface $constraint): void;
-    
+    /**
+     * @param ViolationListInterface<int, ViolationInterface> $violationList
+     */
     public function __construct(
         private readonly ViolationListInterface $violationList = new ViolationList(),
     ) {
     }
 
+    /**
+     * @return ViolationListInterface<int, ViolationInterface>
+     */
     public function getViolations(): ViolationListInterface
     {
         return $this->violationList;
     }
 
-    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
+    /**
+     * @param Constraint $constraint
+     */
+    public function validate(ValidatedValueInterface $validatedValue, ConstraintInterface $constraint): void
     {
-        if (!$constraint instanceof Constraint) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Constraint::class);
-        }
-
-        if ($value->isInitialized() && $value->getValue()->age !== 18) {
+        if ($validatedValue->isInitialized() && $validatedValue->getValue()->age !== 18) {
             $this->violationList->add(
-                new Violation(invalidValue: $value->getValue(), message: $constraint->message, path: $value->getPath()),
+                new Violation(
+                  invalidValue: $validatedValue->getValue(),
+                  message: $constraint->message,
+                  path: $validatedValue->getPath()
+                ),
             );
         }
     }
@@ -191,7 +208,7 @@ final class Test
 }
 
 $validator = new Validator();
-/** @var ViolationListInterface<ViolationInterface> $errors */
+/** @var ViolationListInterface<int, ViolationInterface> $errors */
 $errors = $validator->validate(new Test());
 ```
 
