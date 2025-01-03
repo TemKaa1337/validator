@@ -2,7 +2,7 @@
 
 ### Installation
 ```
-composer require temkaa/simple-validator
+composer require temkaa/validator
 ```
 
 ## This package provides the following constraints:
