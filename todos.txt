@@ -1,0 +1,6 @@
+1. update changelog
+2. update readme (for generics implements)
+3. increase infection msi to 100
+4. add composer scripts
+5. add code coverage test on 100%
+6. update package in packagist with new name

@@ -2,13 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint;
+namespace Temkaa\Validator\Constraint;
 
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
+use Temkaa\Validator\Model\ValidatedValueInterface;
 
+/**
+ * @api
+ *
+ * @template TConstraint of ConstraintInterface
+ */
 interface ConstraintValidatorInterface
 {
+    /**
+     * @return ViolationListInterface<int, ViolationInterface>
+     */
     public function getViolations(): ViolationListInterface;
 
-    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void;
+    /**
+     * @param TConstraint $constraint
+     */
+    public function validate(ValidatedValueInterface $validatedValue, ConstraintInterface $constraint): void;
 }

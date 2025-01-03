@@ -2,29 +2,33 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint\Validator;
+namespace Temkaa\Validator\Constraint\Validator;
 
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
-use Temkaa\SimpleValidator\Constraint\Assert\GreaterThan;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Violation;
-use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
+use Temkaa\Validator\AbstractConstraintValidator;
+use Temkaa\Validator\Constraint\Assert\GreaterThan;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\Violation;
+use Temkaa\Validator\Exception\UnexpectedTypeException;
+use Temkaa\Validator\Model\ValidatedValueInterface;
+use function gettype;
 
+/**
+ * @internal
+ *
+ * @extends AbstractConstraintValidator<GreaterThan>
+ */
 final class GreaterThanValidator extends AbstractConstraintValidator
 {
-    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
+    /**
+     * @param GreaterThan $constraint
+     */
+    public function validate(ValidatedValueInterface $validatedValue, ConstraintInterface $constraint): void
     {
-        if (!$constraint instanceof GreaterThan) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: GreaterThan::class);
-        }
-
-        if (!$value->isInitialized()) {
+        if (!$validatedValue->isInitialized()) {
             return;
         }
 
-        $errorPath = $value->getPath();
-        $value = $value->getValue();
+        $value = $validatedValue->getValue();
         if (!is_numeric($value)) {
             throw new UnexpectedTypeException(actualType: gettype($value), expectedType: 'float|int');
         }
@@ -35,7 +39,9 @@ final class GreaterThanValidator extends AbstractConstraintValidator
             : $value <= $constraint->threshold;
 
         if ($isInvalid) {
-            $this->addViolation(new Violation(invalidValue: $value, message: $constraint->message, path: $errorPath));
+            $this->addViolation(
+                new Violation(invalidValue: $value, message: $constraint->message, path: $validatedValue->getPath()),
+            );
         }
     }
 }

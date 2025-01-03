@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Stub;
+namespace Tests\Helper\Stub;
 
 abstract class AbstractClass
 {

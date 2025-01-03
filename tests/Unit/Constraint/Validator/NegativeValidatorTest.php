@@ -8,16 +8,16 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionException;
-use stdClass;
-use Temkaa\SimpleValidator\Constraint\Assert;
-use Temkaa\SimpleValidator\Constraint\Validator\NegativeValidator;
-use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
-use Temkaa\SimpleValidator\Model\ValidatedValue;
-use Temkaa\SimpleValidator\Validator;
+use Temkaa\Validator\Constraint\Assert;
+use Temkaa\Validator\Exception\UnexpectedTypeException;
+use Temkaa\Validator\Validator;
+use function sprintf;
 
 final class NegativeValidatorTest extends AbstractValidatorTestCase
 {
-    /** @noinspection SenselessProxyMethodInspection */
+    /**
+     * @return iterable<array{0: object, 1: array<int, mixed>, 2: int}>
+     */
     public static function getDataForInvalidTest(): iterable
     {
         $object = new class {
@@ -85,6 +85,9 @@ final class NegativeValidatorTest extends AbstractValidatorTestCase
         ];
     }
 
+    /**
+     * @return iterable<array{0: object}>
+     */
     public static function getDataForValidTest(): iterable
     {
         $object = new class {
@@ -106,6 +109,9 @@ final class NegativeValidatorTest extends AbstractValidatorTestCase
         yield [$object];
     }
 
+    /**
+     * @return iterable<array{0: object, 1: string, 2: string}>
+     */
     public static function getDataForValidateWithUnsupportedValueTypeTest(): iterable
     {
         $object = new class {
@@ -152,12 +158,13 @@ final class NegativeValidatorTest extends AbstractValidatorTestCase
         ];
     }
 
-    /** @noinspection SenselessProxyMethodInspection */
     #[DataProvider('getDataForInvalidTest')]
     public function testInvalid(object $value, array $invalidValuesInfo, int $expectedErrorsCount): void
     {
         parent::testInvalid($value, $invalidValuesInfo, $expectedErrorsCount);
     }
+
+    /** @noinspection SenselessProxyMethodInspection */
 
     /**
      * @throws ContainerExceptionInterface
@@ -173,21 +180,24 @@ final class NegativeValidatorTest extends AbstractValidatorTestCase
         $this->assertEmpty($errors);
     }
 
-    public function testValidateInvalidConstraint(): void
+    /**
+     * @throws ReflectionException
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    public function testValidateWithUninitializedValue(): void
     {
-        $this->expectException(UnexpectedTypeException::class);
-        $this->expectExceptionMessage(
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                Assert\Negative::class,
-                Assert\Count::class,
-            ),
-        );
+        $object = new class {
+            #[Assert\Count(expected: 1, message: 'validation exception')]
+            public array $test = ['test1'];
 
-        (new NegativeValidator())->validate(
-            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
-            new Assert\Count(expected: 1, message: ''),
-        );
+            #[Assert\Negative(message: 'validation exception')]
+            public int $value;
+        };
+
+        $errors = (new Validator())->validate($object);
+
+        $this->assertEmpty($errors);
     }
 
     /**

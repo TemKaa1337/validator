@@ -2,36 +2,48 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint\Validator;
+namespace Temkaa\Validator\Constraint\Validator;
 
 use Countable;
 use Stringable;
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
-use Temkaa\SimpleValidator\Constraint\Assert\NotBlank;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Violation;
-use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
+use Temkaa\Validator\AbstractConstraintValidator;
+use Temkaa\Validator\Constraint\Assert\NotBlank;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\Violation;
+use Temkaa\Validator\Exception\UnexpectedTypeException;
+use Temkaa\Validator\Model\ValidatedValueInterface;
+use function count;
+use function gettype;
+use function is_array;
+use function is_string;
+use function mb_strlen;
 
+/**
+ * @internal
+ *
+ * @extends AbstractConstraintValidator<NotBlank>
+ */
 final class NotBlankValidator extends AbstractConstraintValidator
 {
-    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
+    /**
+     * @param NotBlank $constraint
+     */
+    public function validate(ValidatedValueInterface $validatedValue, ConstraintInterface $constraint): void
     {
-        if (!$constraint instanceof NotBlank) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: NotBlank::class);
-        }
-
-        $errorPath = $value->getPath();
-        if (!$value->isInitialized()) {
+        $errorPath = $validatedValue->getPath();
+        if (!$validatedValue->isInitialized()) {
             $this->addViolation(
-                new Violation(invalidValue: $value->getValue(), message: $constraint->message, path: $errorPath),
+                new Violation(
+                    invalidValue: $validatedValue->getValue(), message: $constraint->message, path: $errorPath,
+                ),
             );
 
             return;
         }
 
-        $value = $value->getValue();
+        $value = $validatedValue->getValue();
 
+        /** @var null|string|Stringable|array<int|string, mixed>|Countable $value */
         $this->validateType($value);
 
         if ($value === null) {
@@ -44,7 +56,6 @@ final class NotBlankValidator extends AbstractConstraintValidator
             return;
         }
 
-        /** @psalm-suppress MixedArgument */
         $length = is_string($value) || $value instanceof Stringable ? mb_strlen((string) $value) : count($value);
 
         if ($length === 0) {
@@ -54,13 +65,13 @@ final class NotBlankValidator extends AbstractConstraintValidator
 
     private function validateType(mixed $value): void
     {
-        /** @noinspection PhpConditionCheckedByNextConditionInspection */
+        /** @noinspection PhpConditionAlreadyCheckedInspection */
         if (
             $value !== null
             && !is_string($value)
+            && !$value instanceof Stringable
             && !is_array($value)
             && !$value instanceof Countable
-            && !$value instanceof Stringable
         ) {
             throw new UnexpectedTypeException(
                 actualType: gettype($value),

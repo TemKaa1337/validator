@@ -2,18 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint\Assert;
+namespace Temkaa\Validator\Constraint\Assert;
 
 use Attribute;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Validator\GreaterThanValidator;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\Validator\GreaterThanValidator;
 
+/**
+ * @api
+ *
+ * @template-implements ConstraintInterface<GreaterThanValidator>
+ */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class GreaterThan implements ConstraintInterface
 {
-    /**
-     * @psalm-api
-     */
     public function __construct(
         public float|int $threshold,
         public string $message,
@@ -21,9 +23,6 @@ final readonly class GreaterThan implements ConstraintInterface
     ) {
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getHandler(): string
     {
         return GreaterThanValidator::class;

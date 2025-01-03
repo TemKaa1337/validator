@@ -9,16 +9,17 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionException;
-use stdClass;
 use Stringable;
-use Temkaa\SimpleValidator\Constraint\Assert;
-use Temkaa\SimpleValidator\Constraint\Validator\NotBlankValidator;
-use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
-use Temkaa\SimpleValidator\Model\ValidatedValue;
-use Temkaa\SimpleValidator\Validator;
+use Temkaa\Validator\Constraint\Assert;
+use Temkaa\Validator\Exception\UnexpectedTypeException;
+use Temkaa\Validator\Validator;
+use function sprintf;
 
 final class NotBlankValidatorTest extends AbstractValidatorTestCase
 {
+    /**
+     * @return iterable<array{0: object, 1: array<int, mixed>, 2: int}>
+     */
     public static function getDataForInvalidTest(): iterable
     {
         $object = new class {
@@ -69,7 +70,6 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
         ];
 
         $object = new class {
-            /** @noinspection PropertyInitializationFlawsInspection */
             #[Assert\NotBlank(message: 'validation exception')]
             public null $test = null;
         };
@@ -136,6 +136,9 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
         ];
     }
 
+    /**
+     * @return iterable<array{0: object}>
+     */
     public static function getDataForValidTest(): iterable
     {
         $object = new class {
@@ -193,6 +196,9 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
         yield [$object];
     }
 
+    /**
+     * @return iterable<array{0: object, 1: string, 2: string}>
+     */
     public static function getDataForValidateWithUnsupportedValueTypeTest(): iterable
     {
         $object = new class {
@@ -255,25 +261,7 @@ final class NotBlankValidatorTest extends AbstractValidatorTestCase
     {
         $errors = (new Validator())->validate($value);
 
-        /** @psalm-suppress TypeDoesNotContainType */
-        $this->assertEmpty($errors);
-    }
-
-    public function testValidateInvalidConstraint(): void
-    {
-        $this->expectException(UnexpectedTypeException::class);
-        $this->expectExceptionMessage(
-            sprintf(
-                'Unexpected argument type exception, expected "%s" but got "%s".',
-                Assert\NotBlank::class,
-                Assert\Count::class,
-            ),
-        );
-
-        (new NotBlankValidator())->validate(
-            new ValidatedValue(new stdClass(), path: 'path', isInitialized: true),
-            new Assert\Count(expected: 1, message: ''),
-        );
+        $this->assertCount(0, $errors);
     }
 
     /**

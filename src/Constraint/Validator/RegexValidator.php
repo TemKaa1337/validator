@@ -2,30 +2,36 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint\Validator;
+namespace Temkaa\Validator\Constraint\Validator;
 
 use Stringable;
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
-use Temkaa\SimpleValidator\Constraint\Assert\Regex;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Violation;
-use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
+use Temkaa\Validator\AbstractConstraintValidator;
+use Temkaa\Validator\Constraint\Assert\Regex;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\Violation;
+use Temkaa\Validator\Exception\UnexpectedTypeException;
+use Temkaa\Validator\Model\ValidatedValueInterface;
+use function gettype;
+use function is_string;
 
+/**
+ * @internal
+ *
+ * @extends AbstractConstraintValidator<Regex>
+ */
 final class RegexValidator extends AbstractConstraintValidator
 {
-    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
+    /**
+     * @param Regex $constraint
+     */
+    public function validate(ValidatedValueInterface $validatedValue, ConstraintInterface $constraint): void
     {
-        if (!$constraint instanceof Regex) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: Regex::class);
-        }
-
-        if (!$value->isInitialized()) {
+        if (!$validatedValue->isInitialized()) {
             return;
         }
 
-        $errorPath = $value->getPath();
-        $value = $value->getValue();
+        $errorPath = $validatedValue->getPath();
+        $value = $validatedValue->getValue();
         if (!is_string($value) && !$value instanceof Stringable) {
             throw new UnexpectedTypeException(actualType: gettype($value), expectedType: 'string|\Stringable');
         }

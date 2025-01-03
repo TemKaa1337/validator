@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Stub;
+namespace Tests\Helper\Stub;
 
 use Attribute;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\ConstraintInterface;
 
 #[Attribute(Attribute::TARGET_CLASS)]
 final readonly class ConstraintWithConfigurableHandler implements ConstraintInterface

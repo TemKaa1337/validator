@@ -2,30 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint\Assert;
+namespace Temkaa\Validator\Constraint\Assert;
 
 use Attribute;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Validator\NotBlankValidator;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\Validator\NotBlankValidator;
 
 /**
- * @psalm-api
+ * @api
+ *
+ * @template-implements ConstraintInterface<NotBlankValidator>
  */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class NotBlank implements ConstraintInterface
 {
-    /**
-     * @psalm-api
-     */
     public function __construct(
         public string $message,
         public bool $allowNull = false,
     ) {
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getHandler(): string
     {
         return NotBlankValidator::class;

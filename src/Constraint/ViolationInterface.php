@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint;
+namespace Temkaa\Validator\Constraint;
 
 /**
- * @psalm-api
+ * @api
  */
 interface ViolationInterface
 {

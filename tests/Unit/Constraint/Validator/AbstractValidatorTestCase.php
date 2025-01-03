@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionException;
-use Temkaa\SimpleValidator\Validator;
+use Temkaa\Validator\Validator;
 use Throwable;
 
 abstract class AbstractValidatorTestCase extends TestCase
@@ -34,8 +34,6 @@ abstract class AbstractValidatorTestCase extends TestCase
     }
 
     abstract public function testValid(object $value): void;
-
-    abstract public function testValidateInvalidConstraint(): void;
 
     /**
      * @param object                  $value

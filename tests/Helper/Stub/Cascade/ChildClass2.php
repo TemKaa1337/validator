@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Stub\Cascade;
+namespace Tests\Helper\Stub\Cascade;
 
-use Temkaa\SimpleValidator\Constraint\Assert\Cascade;
-use Temkaa\SimpleValidator\Constraint\Assert\Length;
+use Temkaa\Validator\Constraint\Assert\Cascade;
+use Temkaa\Validator\Constraint\Assert\Length;
 
 final class ChildClass2
 {

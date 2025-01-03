@@ -2,29 +2,34 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint\Validator;
+namespace Temkaa\Validator\Constraint\Validator;
 
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
-use Temkaa\SimpleValidator\Constraint\Assert\LessThan;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Violation;
-use Temkaa\SimpleValidator\Exception\UnexpectedTypeException;
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
+use Temkaa\Validator\AbstractConstraintValidator;
+use Temkaa\Validator\Constraint\Assert\LessThan;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\Violation;
+use Temkaa\Validator\Exception\UnexpectedTypeException;
+use Temkaa\Validator\Model\ValidatedValueInterface;
+use function gettype;
 
+/**
+ * @internal
+ *
+ * @extends AbstractConstraintValidator<LessThan>
+ */
 final class LessThanValidator extends AbstractConstraintValidator
 {
-    public function validate(ValidatedValueInterface $value, ConstraintInterface $constraint): void
+    /**
+     * @param LessThan $constraint
+     */
+    public function validate(ValidatedValueInterface $validatedValue, ConstraintInterface $constraint): void
     {
-        if (!$constraint instanceof LessThan) {
-            throw new UnexpectedTypeException(actualType: $constraint::class, expectedType: LessThan::class);
-        }
-
-        if (!$value->isInitialized()) {
+        if (!$validatedValue->isInitialized()) {
             return;
         }
 
-        $errorPath = $value->getPath();
-        $value = $value->getValue();
+        $errorPath = $validatedValue->getPath();
+        $value = $validatedValue->getValue();
         if (!is_numeric($value)) {
             throw new UnexpectedTypeException(actualType: gettype($value), expectedType: 'float|int');
         }

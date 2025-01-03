@@ -2,26 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint\Assert;
+namespace Temkaa\Validator\Constraint\Assert;
 
 use Attribute;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Validator\InitializedValidator;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\Validator\InitializedValidator;
 
+/**
+ * @api
+ *
+ * @template-implements ConstraintInterface<InitializedValidator>
+ */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class Initialized implements ConstraintInterface
 {
-    /**
-     * @psalm-api
-     */
     public function __construct(
         public string $message,
     ) {
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getHandler(): string
     {
         return InitializedValidator::class;

@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint;
+namespace Temkaa\Validator\Constraint;
 
+/**
+ * @api
+ *
+ * @template TValidator of ConstraintValidatorInterface
+ */
 interface ConstraintInterface
 {
     /**
-     * @psalm-api
-     *
-     * @template T of ConstraintValidatorInterface
-     *
-     * @return class-string<T>
+     * @return class-string<TValidator>
      */
     public function getHandler(): string;
 }

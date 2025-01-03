@@ -2,14 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Service;
+namespace Temkaa\Validator\Service;
 
 use ReflectionAttribute;
 use ReflectionClass;
-use Temkaa\SimpleValidator\Constraint\Assert\Cascade;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Model\ValidatedValue;
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
+use ReflectionException;
+use ReflectionProperty;
+use Temkaa\Validator\Constraint\Assert\Cascade;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Model\ValidatedValue;
+use Temkaa\Validator\Model\ValidatedValueInterface;
+use function array_map;
+use function array_merge;
+use function sprintf;
 
 /**
  * @internal
@@ -17,34 +22,44 @@ use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
 final class RuleCollector
 {
     /**
+     * @template TConstraint of ConstraintInterface
+     *
      * @param iterable<object>|object $values
-     * @param ConstraintInterface[]   $constraints
+     * @param list<TConstraint>       $constraints
      * @param string|null             $errorPathPrefix
      *
-     * @return list<array{0: ValidatedValueInterface, 1: ConstraintInterface[]}>
+     * @return list<array{0: ValidatedValueInterface, 1: list<TConstraint>}>
+     *
+     * @throws ReflectionException
      */
     public function collect(
         iterable|object $values,
         array $constraints = [],
         ?string $errorPathPrefix = null,
     ): array {
-        if ($rules = $this->collectFromConstraints($values, $constraints)) {
-            return $rules;
-        }
+        /** @var list<array{0: ValidatedValueInterface, 1: list<TConstraint>}> $rules */
+        $rules = $this->collectFromConstraints($values, $constraints)
+            ?: $this->collectFromClass($values, $errorPathPrefix);
 
-        return $this->collectFromClass($values, $errorPathPrefix);
+        return $rules;
     }
 
     /**
-     * @param iterable<object>|object $values
-     * @param string|null             $errorPathPrefix
+     * @template TConstraint of ConstraintInterface
      *
-     * @return list<array{0: ValidatedValueInterface, 1: ConstraintInterface[]}>
+     * @param iterable<object>|object   $values
+     * @param class-string<TConstraint> $constraintBaseClass
+     *
+     * @return list<array{0: ValidatedValueInterface, 1: list<TConstraint>}>
+     *
+     * @throws ReflectionException
      */
     private function collectFromClass(
         iterable|object $values,
         ?string $errorPathPrefix = null,
+        string $constraintBaseClass = ConstraintInterface::class,
     ): array {
+        /** @var list<list<array{0: ValidatedValueInterface, 1: list<TConstraint>}>> $rules */
         $rules = [];
 
         $isIterable = is_iterable($values);
@@ -57,30 +72,35 @@ final class RuleCollector
 
             $errorPath = $this->getErrorPathPrefix($errorPathPrefix, $isIterable, $index, $value::class);
 
-            $attributes = $reflection->getAttributes(
-                ConstraintInterface::class,
-                ReflectionAttribute::IS_INSTANCEOF,
-            );
-            foreach ($attributes as $attribute) {
-                $rules[] = [
-                    new ValidatedValue($value, $errorPath, isInitialized: true),
-                    [$attribute->newInstance()],
-                ];
+            /** @var list<TConstraint> $constraints */
+            $constraints = $this->getAttributes($reflection, attributeClass: $constraintBaseClass);
+            foreach ($constraints as $constraint) {
+                /** @var list<array{0: ValidatedValueInterface, 1: list<TConstraint>}> $rule */
+                $rule = [[new ValidatedValue($value, $errorPath, isInitialized: true), [$constraint]]];
+
+                $rules[] = $rule;
             }
 
-            $rules = array_merge($rules, $this->collectFromProperties($reflection, $errorPath, $value));
+            /** @var list<array{0: ValidatedValueInterface, 1: list<TConstraint>}> $additionalRules */
+            $additionalRules = $this->collectFromProperties($reflection, $errorPath, $value);
+
+            $rules[] = $additionalRules;
 
             ++$index;
         }
 
-        return $rules;
+        return array_merge(...$rules);
     }
 
     /**
-     * @param iterable<object>|object $values
-     * @param ConstraintInterface[]   $constraints
+     * @template TConstraint of ConstraintInterface
      *
-     * @return list<array{0: ValidatedValueInterface, 1: ConstraintInterface[]}>
+     * @param iterable<object>|object $values
+     * @param list<TConstraint>       $constraints
+     *
+     * @return list<array{0: ValidatedValueInterface, 1: list<TConstraint>}>
+     *
+     * @throws ReflectionException
      */
     private function collectFromConstraints(
         iterable|object $values,
@@ -90,54 +110,61 @@ final class RuleCollector
             return [];
         }
 
+        /** @var list<list<array{0: ValidatedValueInterface, 1: list<TConstraint>}>> $rules */
         $rules = [];
+
         $values = is_iterable($values) ? $values : [$values];
+
+        /** @var iterable<object>|list<object> $values */
         foreach ($values as $value) {
             $cascadeConstraintExists = array_filter(
                 $constraints,
                 static fn (ConstraintInterface $constraint): bool => $constraint instanceof Cascade,
             );
 
-            if ($cascadeConstraintExists) {
-                /** @psalm-suppress MixedArgument */
-                $rules = array_merge($rules, $this->collect($value));
-            } else {
-                $rules[] = [
-                    new ValidatedValue($value, path: $value::class, isInitialized: true),
-                    $constraints,
-                ];
-            }
+            $rules[] = $cascadeConstraintExists
+                ? $this->collect($value)
+                : [[new ValidatedValue($value, path: $value::class, isInitialized: true), $constraints]];
         }
 
-        return $rules;
+        return array_merge(...$rules);
     }
 
     /**
-     * @return list<array{0: ValidatedValueInterface, 1: ConstraintInterface[]}>
+     * @template TConstraint of ConstraintInterface
+     * @template TObject of object
+     *
+     * @param ReflectionClass<TObject>  $reflection
+     * @param TObject                   $value
+     * @param class-string<TConstraint> $constraintBaseClass
+     *
+     * @return list<array{0: ValidatedValueInterface, 1: list<TConstraint>}>
+     *
+     * @throws ReflectionException
      */
     private function collectFromProperties(
         ReflectionClass $reflection,
         string $errorPathPrefix,
         object $value,
+        string $constraintBaseClass = ConstraintInterface::class,
     ): array {
+        /** @var list<list<array{0: ValidatedValueInterface, 1: list<TConstraint>}>> $rules */
         $rules = [];
 
         $properties = $reflection->getProperties();
         foreach ($properties as $property) {
-            $attributes = $property->getAttributes(ConstraintInterface::class, ReflectionAttribute::IS_INSTANCEOF);
+            /** @var list<TConstraint> $constraints */
+            $constraints = $this->getAttributes($property, attributeClass: $constraintBaseClass);
             $errorPath = sprintf('%s.%s', $errorPathPrefix, $property->getName());
 
-            foreach ($attributes as $attribute) {
-                $isPropertyInitialized = $property->isInitialized($value);
-                $propertyValue = $isPropertyInitialized ? $property->getValue($value) : null;
-                $constraint = $attribute->newInstance();
-                $validatedValue = new ValidatedValue($propertyValue, $errorPath, $isPropertyInitialized);
+            foreach ($constraints as $constraint) {
+                $propertyInitialized = $property->isInitialized($value);
+                $propertyValue = $propertyInitialized ? $property->getValue($value) : null;
+
+                $validatedValue = new ValidatedValue($propertyValue, $errorPath, $propertyInitialized);
 
                 if (!$constraint instanceof Cascade) {
-                    $rules[] = [
-                        new ValidatedValue($propertyValue, $errorPath, $isPropertyInitialized),
-                        [$constraint],
-                    ];
+                    $rules[] = [[$validatedValue, [$constraint]]];
 
                     continue;
                 }
@@ -145,17 +172,31 @@ final class RuleCollector
                 $handler = new ($constraint->getHandler());
                 $handler->validate($validatedValue, $constraint);
 
-                if ($isPropertyInitialized) {
-                    /** @psalm-suppress MixedArgument, PossiblyNullArgument */
-                    $rules = array_merge(
-                        $rules,
-                        $this->collect($propertyValue, errorPathPrefix: $errorPath),
-                    );
+                if ($propertyInitialized) {
+                    /** @var iterable<object>|object $propertyValue */
+                    $rules[] = $this->collect($propertyValue, errorPathPrefix: $errorPath);
                 }
             }
         }
 
-        return $rules;
+        return array_merge(...$rules);
+    }
+
+    /**
+     * @template TConstraint of ConstraintInterface
+     * @template TObject of object
+     *
+     * @param ReflectionClass<TObject>|ReflectionProperty $reflector
+     * @param class-string<TConstraint>                   $attributeClass
+     *
+     * @return list<TConstraint>
+     */
+    private function getAttributes(ReflectionClass|ReflectionProperty $reflector, string $attributeClass): array
+    {
+        return array_map(
+            static fn (ReflectionAttribute $attribute): ConstraintInterface => $attribute->newInstance(),
+            $reflector->getAttributes($attributeClass, ReflectionAttribute::IS_INSTANCEOF),
+        );
     }
 
     private function getErrorPathPrefix(
@@ -165,7 +206,7 @@ final class RuleCollector
         string $className,
     ): string {
         return match (true) {
-            $errorPathPrefix && $isIterable  => sprintf('%s[%s]', $errorPathPrefix, $listIndex),
+            $errorPathPrefix && $isIterable  => "{$errorPathPrefix}[$listIndex]",
             $errorPathPrefix && !$isIterable => $errorPathPrefix,
             !$errorPathPrefix && $isIterable => "[$listIndex]",
             default                          => $className,

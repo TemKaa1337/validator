@@ -2,21 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator;
+namespace Temkaa\Validator;
 
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\ViolationInterface;
+use Temkaa\Validator\Constraint\ViolationListInterface;
 
 /**
- * @psalm-api
+ * @api
  */
 interface ValidatorInterface
 {
     /**
-     * @param iterable<object>|object                        $values
-     * @param ConstraintInterface[]|ConstraintInterface|null $constraints
+     * @template TConstraint of ConstraintInterface
      *
-     * @return ViolationListInterface
+     * @param iterable<object>|object            $values
+     * @param list<TConstraint>|TConstraint|null $constraints
+     *
+     * @return ViolationListInterface<int, ViolationInterface>
      */
     public function validate(
         iterable|object $values,

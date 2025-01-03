@@ -2,27 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator\Constraint\Assert;
+namespace Temkaa\Validator\Constraint\Assert;
 
 use Attribute;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\Validator\CountValidator;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\Validator\CountValidator;
 
+/**
+ * @api
+ *
+ * @template-implements ConstraintInterface<CountValidator>
+ */
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class Count implements ConstraintInterface
 {
-    /**
-     * @psalm-api
-     */
     public function __construct(
         public int $expected,
         public string $message,
     ) {
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getHandler(): string
     {
         return CountValidator::class;

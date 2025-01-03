@@ -48,10 +48,10 @@ declare(strict_types=1);
 
 namespace App;
 
-use Temkaa\SimpleValidator\Constraint\Assert;
-use Temkaa\SimpleValidator\Constraint\ViolationInterface;
-use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
-use Temkaa\SimpleValidator\Validator;
+use Temkaa\Validator\Constraint\Assert;
+use Temkaa\Validator\Constraint\ViolationInterface;
+use Temkaa\Validator\Constraint\ViolationListInterface;
+use Temkaa\Validator\Validator;
 
 final class Test
 {
@@ -114,13 +114,13 @@ declare(strict_types=1);
 namespace App;
 
 use Attribute;
-use Temkaa\SimpleValidator\AbstractConstraintValidator;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\ConstraintValidatorInterface;
-use Temkaa\SimpleValidator\Constraint\ViolationInterface;
-use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
-use Temkaa\SimpleValidator\Model\ValidatedValueInterface;
-use Temkaa\SimpleValidator\Validator;
+use Temkaa\Validator\AbstractConstraintValidator;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\ConstraintValidatorInterface;
+use Temkaa\Validator\Constraint\ViolationInterface;
+use Temkaa\Validator\Constraint\ViolationListInterface;
+use Temkaa\Validator\Model\ValidatedValueInterface;
+use Temkaa\Validator\Validator;
 
 #[Attribute(Attribute::TARGET_CLASS)]
 final readonly class Constraint implements ConstraintInterface
@@ -205,7 +205,7 @@ of your constraint validator, if it won't find any, the exception will be thrown
 
 declare(strict_types=1);
 
-use Temkaa\SimpleValidator\Validator;
+use Temkaa\Validator\Validator;
 
 $validator = new Validator($container);
 ```

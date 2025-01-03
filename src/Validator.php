@@ -2,37 +2,46 @@
 
 declare(strict_types=1);
 
-namespace Temkaa\SimpleValidator;
+namespace Temkaa\Validator;
 
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionException;
-use Temkaa\SimpleValidator\Constraint\ConstraintInterface;
-use Temkaa\SimpleValidator\Constraint\ViolationList;
-use Temkaa\SimpleValidator\Constraint\ViolationListInterface;
-use Temkaa\SimpleValidator\Service\Instantiator;
-use Temkaa\SimpleValidator\Service\RuleCollector;
-use Temkaa\SimpleValidator\Utils\InputArgumentValidator;
+use Temkaa\Validator\Constraint\ConstraintInterface;
+use Temkaa\Validator\Constraint\ViolationInterface;
+use Temkaa\Validator\Constraint\ViolationList;
+use Temkaa\Validator\Constraint\ViolationListInterface;
+use Temkaa\Validator\Service\Instantiator;
+use Temkaa\Validator\Service\RuleCollector;
+use Temkaa\Validator\Utils\InputArgumentValidator;
+use function is_array;
 
 /**
- * @psalm-api
+ * @api
  */
 final readonly class Validator implements ValidatorInterface
 {
+    private InputArgumentValidator $inputArgumentValidator;
+
     private Instantiator $instantiator;
 
     private RuleCollector $ruleCollector;
 
-    public function __construct(
-        ?ContainerInterface $container = null,
-    ) {
+    public function __construct(?ContainerInterface $container = null)
+    {
         $this->instantiator = new Instantiator($container);
         $this->ruleCollector = new RuleCollector();
+        $this->inputArgumentValidator = new InputArgumentValidator();
     }
 
     /**
-     * @inheritDoc
+     * @template TConstraint of ConstraintInterface
+     *
+     * @param iterable<object>|object            $values
+     * @param list<TConstraint>|TConstraint|null $constraints
+     *
+     * @return ViolationListInterface<int, ViolationInterface>
      *
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
@@ -42,18 +51,19 @@ final readonly class Validator implements ValidatorInterface
         iterable|object $values,
         array|ConstraintInterface|null $constraints = null,
     ): ViolationListInterface {
-        InputArgumentValidator::validateValues($values);
-        InputArgumentValidator::validateConstraints($constraints);
+        $this->inputArgumentValidator->validateValues($values);
 
-        $constraints = match (true) {
+        /** @var list<TConstraint> $formattedConstraints */
+        $formattedConstraints = match (true) {
             $constraints === null  => [],
             is_array($constraints) => $constraints,
             default                => [$constraints]
         };
 
+        /** @var ViolationList<int, ViolationInterface> $violations */
         $violations = new ViolationList();
 
-        $rules = $this->ruleCollector->collect($values, $constraints);
+        $rules = $this->ruleCollector->collect($values, $formattedConstraints);
 
         foreach ($rules as $rule) {
             [$validatedValue, $constraints] = $rule;
